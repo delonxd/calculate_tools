@@ -51,11 +51,22 @@ class Node:
             for outflow, edge in other.edges:
                 self.edges.append((outflow, edge))
                 if outflow:
-                    edge.node_start = self
+                    edge.start = self
                 else:
-                    edge.node_end = self
+                    edge.end = self
+        elif isinstance(other, Port):
+            self.link_node(other.node)
         else:
-            raise KeyboardInterrupt("类型异常：需要节点类型")
+            raise KeyboardInterrupt("类型异常：需要节点或端口类型")
+
+    def print_edges(self):
+        list1 = []
+        for outflow, edge in self.edges:
+            if outflow:
+                list1.append((edge.name, '起点'))
+            else:
+                list1.append((edge.name, '终点'))
+        print(list1)
 
 
 class Edge:
@@ -140,6 +151,22 @@ class EdgeWire(Edge):
         pass
 
 
+class Port:
+    def __init__(self, edge, flag: bool):
+        self.edge = edge
+        self.start_flag = flag
+
+    @property
+    def node(self):
+        if self.start_flag:
+            return self.edge.start
+        else:
+            return self.edge.end
+
+    def link_node(self, other):
+        self.node.link_node(other)
+
+
 class Module:
     def __init__(self, parent, name_base):
         self.parent = parent
@@ -173,16 +200,29 @@ class Module:
     def print_nodes(self):
         list1 = []
         for node in self.get_nodes():
-            list1.append(node.name)
-        list1.sort()
-        print(list1)
+            print(node.name)
+            node.print_edges()
 
-    def config_port(self, *nodes):
-        for node in nodes:
-            if node in self.get_nodes():
-                self.ports.append(node)
+        #     list1.append(node.name)
+        # list1.sort()
+        # print(list1)
+
+    # def config_port(self, *nodes):
+    #     nodes = self.get_nodes()
+    #     print(len(nodes))
+    #     for node in nodes:
+    #         if node in nodes:
+    #             self.ports.append(node)
+    #         else:
+    #             print(node.edges[0][1].parent.name_base)
+    #             raise KeyboardInterrupt("类型异常：不包含相应edge")
+
+    def config_port(self, *ports):
+        for port in ports:
+            if isinstance(port, Port):
+                self.ports.append(port)
             else:
-                raise KeyboardInterrupt("类型异常：不包含相应edge")
+                raise KeyboardInterrupt("类型异常：需要Port类型")
 
     def add_element(self, *element):
         for ele in element:
@@ -231,30 +271,226 @@ class ModuleImpedance(Module):
         self.create_circuit()
         self.create_port()
 
-    @property
-    def start(self):
-        return self.r1.start
+    def create_circuit(self):
+        pass
 
-    @start.setter
-    def start(self, value):
-        self.r1.start = value
+    def create_port(self):
+        self.config_port(Port(self.r1, True), Port(self.r1, False))
 
-    @property
-    def end(self):
-        return self.r1.end
+    def config_edge_para(self, freq):
+        self.r1.config_parameter(self.z[freq])
 
-    @end.setter
-    def end(self, value):
-        self.r1.end = value
+
+class Cable(Module):
+    def __init__(self, parent, name_base, length, cab_r, cab_l, cab_c):
+        super().__init__(parent, name_base)
+        self.R = cab_r
+        self.L = cab_l
+        self.C = cab_c
+        self.length = length
+
+        self.r1 = EdgeResistance(self, 'R1', 0)
+        self.r2 = EdgeResistance(self, 'R2', 0)
+        self.rp1 = EdgeResistance(self, 'Rp1', 0)
+        self.rp2 = EdgeResistance(self, 'Rp2', 0)
+        self.add_element(self.r1, self.r2, self.rp1, self.rp2)
+
+        self.create_circuit()
+        self.create_port()
+
+    def create_circuit(self):
+        self.r1.start.link_node(self.rp1.start)
+        self.r2.start.link_node(self.rp1.end)
+        self.r1.end.link_node(self.rp2.start)
+        self.r2.end.link_node(self.rp2.end)
+
+    def create_port(self):
+        self.config_port(Port(self.r1, True), Port(self.r2, True),
+                         Port(self.r1, False), Port(self.r2, False))
+
+    def config_edge_para(self, freq):
+        length = float(self.length)
+        w = 2 * np.pi * freq
+        z0 = float(self.R) + 1j * w * float(self.L)
+        y0 = 10e-10 + 1j * w * float(self.C)
+        # y0 = 1j * w * float(self.C)
+        zc = np.sqrt(z0 / y0)
+        gama = np.sqrt(z0 * y0)
+        zii = zc * np.sinh(gama * length)
+        yii = (np.cosh(gama * length) - 1) / zc / np.sinh(gama * length)
+
+        self.r1.config_parameter(zii/2)
+        self.r2.config_parameter(zii/2)
+        self.rp1.config_parameter(1/yii)
+        self.rp2.config_parameter(1/yii)
+
+
+class Transformer(Module):
+    def __init__(self, parent, name_base, n):
+        super().__init__(parent, name_base)
+        self.n = n
+        self.w1 = EdgeWinding(self, '1原边')
+        self.w2 = EdgeWinding(self, '2副边')
+        self.add_element(self.w1, self.w2)
+
+        self.create_circuit()
+        self.create_port()
 
     def create_circuit(self):
         pass
 
     def create_port(self):
-        self.config_port(self.r1.start, self.r1.end)
+        # self.config_port(self.w1.start, self.w1.end,
+        #                  self.w2.start, self.w2.end)
+
+        self.config_port(Port(self.w1, True), Port(self.w1, False),
+                         Port(self.w2, True), Port(self.w2, False))
+
+    def config_edge_para(self, freq):
+        self.w1.config_parameter(self.w2, self.n)
+        self.w2.config_parameter(self.w1, 1 / self.n)
+        # self.w1.source = True
+        # self.w2.source = False
+
+
+class TwoPortCircuitPi(Module):
+    def __init__(self, parent, name_base, z1, z2, z3):
+        super().__init__(parent, name_base)
+        self.r1 = ModuleImpedance(self, 'R1', z1)
+        self.r2 = ModuleImpedance(self, 'R2', z2)
+        self.r3 = ModuleImpedance(self, 'R3', z3)
+        self.add_element(self.r1, self.r2, self.r3)
+        self.create_circuit()
+        self.create_port()
+
+    def create_circuit(self):
+        self.r1.ports[0].link_node(self.r2.ports[0])
+        self.r2.ports[1].link_node(self.r3.ports[0])
+        self.r1.ports[1].link_node(self.r3.ports[1])
+
+    def create_port(self):
+        # self.config_port(self.r1.start, self.r2.end,
+        #                  self.r3.start, self.r3.end)
+        self.config_port(self.r1.ports[0], self.r2.ports[1],
+                         self.r3.ports[0], self.r3.ports[1])
+
+
+class TwoPortCircuitT(Module):
+    def __init__(self, parent, name_base, z1, z2, z3):
+        super().__init__(parent, name_base)
+        self.r1 = ModuleImpedance(self, 'R1', z1)
+        self.r2 = ModuleImpedance(self, 'R2', z2)
+        self.r3 = ModuleImpedance(self, 'R3', z3)
+        self.add_element(self.r1, self.r2, self.r3)
+        self.create_circuit()
+        self.create_port()
+
+    def create_circuit(self):
+        self.r1.ports[1].link_node(self.r3.ports[0])
+        self.r1.ports[1].link_node(self.r2.ports[0])
+
+    def create_port(self):
+        # self.config_port(self.r1.start, self.r2.end,
+        #                  self.r3.end, self.r2.end)
+
+        self.config_port(self.r1.ports[0], self.r2.ports[1],
+                         self.r3.ports[1], self.r2.ports[1])
+
+
+class TcsrTransformer(Module):
+    def __init__(self, parent, name_base, z1, z2, z3, n):
+        super().__init__(parent, name_base)
+        self.m1 = TwoPortCircuitT(self, '1等效内阻', z1, z2, z3)
+        self.m2 = Transformer(self, '2理想变压器', n)
+
+        self.add_element(self.m1, self.m2)
+        self.create_circuit()
+        self.create_port()
+
+    def create_circuit(self):
+        self.m1.ports[2].link_node(self.m2.ports[0])
+        self.m1.ports[3].link_node(self.m2.ports[1])
+
+    def create_port(self):
+        self.config_port(self.m1.ports[0], self.m1.ports[1],
+                         self.m2.ports[2], self.m2.ports[3])
+
+
+class TcsrFL(TcsrTransformer):
+    def __init__(self, parent, name_base, z1, z2, n):
+        super().__init__(parent, name_base, z1, z2, z1, n)
+
+
+class TcsrTAD(Module):
+    def __init__(self, parent, name_base, z1, z2, z3, zc, n):
+        super().__init__(parent, name_base)
+        self.l1 = ModuleImpedance(self, '1共模电感', z3)
+        self.m1 = TcsrTransformer(self, '2变压器', z1, z2, z1, n)
+        self.c1 = ModuleImpedance(self, '3电容', zc)
+
+        self.add_element(self.l1, self.m1, self.c1)
+        self.create_circuit()
+        self.create_port()
+
+    def create_circuit(self):
+        self.l1.ports[1].link_node(self.m1.ports[0])
+        self.c1.ports[0].link_node(self.m1.ports[2])
+
+    def create_port(self):
+        self.config_port(self.l1.ports[0], self.m1.ports[1],
+                         self.c1.ports[1], self.m1.ports[3])
+
+
+class TcsrPower(Module):
+    def __init__(self, parent, name_base, z1):
+        super().__init__(parent, name_base)
+        self.u1 = EdgePowerU(self, '1理想电压源', 0)
+        self.r1 = ModuleImpedance(self, '2内阻', z1)
+
+        self.add_element(self.u1, self.r1)
+        self.create_circuit()
+        self.create_port()
+
+    def create_circuit(self):
+        self.u1.start.link_node(self.r1.ports[0])
+
+    def create_port(self):
+        self.config_port(self.r1.ports[1], Port(self.u1, False))
+
+
+class TcsrReceiver(ModuleImpedance):
+    def __init__(self, parent, name_base, z1):
+        super().__init__(parent, name_base, z1)
+
+
+class TcsrBA(ModuleImpedance):
+    def __init__(self, parent, name_base, z1):
+        super().__init__(parent, name_base, z1)
 
     def config_edge_para(self, freq):
         self.r1.config_parameter(self.z[freq])
+
+    @property
+    def main_freq(self):
+        return self.parent.freq
+
+
+class TcsrCA(Module):
+    def __init__(self, parent, name_base, z1):
+        super().__init__(parent, name_base)
+        self.r1 = ModuleImpedance(self, '1电阻', z1)
+        self.wr1 = EdgeWire(self, '2导线')
+
+        self.add_element(self.r1, self.wr1)
+        self.create_circuit()
+        self.create_port()
+
+    def create_circuit(self):
+        pass
+
+    def create_port(self):
+        self.config_port(self.r1.ports[0], Port(self.wr1, True),
+                         self.r1.ports[1], Port(self.wr1, False))
 
 
 class TCSRBasic(Module):
@@ -312,209 +548,6 @@ class TCSRBasic(Module):
         self.config_port(self.modules[0].ports[0], self.modules[0].ports[1],
                          self.modules[-1].ports[-2], self.modules[-1].ports[-1])
 
-
-class Cable(Module):
-    def __init__(self, parent, name_base, length, cab_r, cab_l, cab_c):
-        super().__init__(parent, name_base)
-        self.R = cab_r
-        self.L = cab_l
-        self.C = cab_c
-        self.length = length
-
-        self.r1 = EdgeResistance(self, 'R1', 0)
-        self.r2 = EdgeResistance(self, 'R2', 0)
-        self.rp1 = EdgeResistance(self, 'Rp1', 0)
-        self.rp2 = EdgeResistance(self, 'Rp2', 0)
-        self.add_element(self.r1, self.r2, self.rp1, self.rp2)
-
-        self.create_circuit()
-        self.create_port()
-
-    def create_circuit(self):
-        self.r1.start.link_node(self.rp1.start)
-        self.r2.start.link_node(self.rp1.end)
-        self.r1.end.link_node(self.rp2.start)
-        self.r2.end.link_node(self.rp2.end)
-
-    def create_port(self):
-        self.config_port(self.r1.start, self.r2.start,
-                         self.r1.end, self.r2.end)
-
-    def config_edge_para(self, freq):
-        length = float(self.length)
-        w = 2 * np.pi * freq
-        z0 = float(self.R) + 1j * w * float(self.L)
-        y0 = 10e-10 + 1j * w * float(self.C)
-        # y0 = 1j * w * float(self.C)
-        zc = np.sqrt(z0 / y0)
-        gama = np.sqrt(z0 * y0)
-        zii = zc * np.sinh(gama * length)
-        yii = (np.cosh(gama * length) - 1) / zc / np.sinh(gama * length)
-
-        self.r1.config_parameter(zii/2)
-        self.r2.config_parameter(zii/2)
-        self.rp1.config_parameter(1/yii)
-        self.rp2.config_parameter(1/yii)
-
-
-class Transformer(Module):
-    def __init__(self, parent, name_base, n):
-        super().__init__(parent, name_base)
-        self.n = n
-        self.w1 = EdgeWinding(self, '1原边')
-        self.w2 = EdgeWinding(self, '2副边')
-        self.add_element(self.w1, self.w2)
-
-        self.create_circuit()
-        self.create_port()
-
-    def create_circuit(self):
-        pass
-
-    def create_port(self):
-        self.config_port(self.w1.start, self.w1.end,
-                         self.w2.start, self.w2.end)
-
-    def config_edge_para(self, freq):
-        self.w1.config_parameter(self.w2, self.n)
-        self.w2.config_parameter(self.w1, 1 / self.n)
-        # self.w1.source = True
-        # self.w2.source = False
-
-
-class TwoPortCircuitPi(Module):
-    def __init__(self, parent, name_base, z1, z2, z3):
-        super().__init__(parent, name_base)
-        self.r1 = ModuleImpedance(self, 'R1', z1)
-        self.r2 = ModuleImpedance(self, 'R2', z2)
-        self.r3 = ModuleImpedance(self, 'R3', z3)
-        self.add_element(self.r1, self.r2, self.r3)
-        self.create_circuit()
-        self.create_port()
-
-    def create_circuit(self):
-        self.r1.start.link_node(self.r2.start)
-        self.r2.end.link_node(self.r3.start)
-        self.r1.end.link_node(self.r3.end)
-
-    def create_port(self):
-        self.config_port(self.r1.start, self.r2.end,
-                         self.r3.start, self.r3.end)
-
-
-class TwoPortCircuitT(Module):
-    def __init__(self, parent, name_base, z1, z2, z3):
-        super().__init__(parent, name_base)
-        self.r1 = ModuleImpedance(self, 'R1', z1)
-        self.r2 = ModuleImpedance(self, 'R2', z2)
-        self.r3 = ModuleImpedance(self, 'R3', z3)
-        self.add_element(self.r1, self.r2, self.r3)
-        self.create_circuit()
-        self.create_port()
-
-    def create_circuit(self):
-        self.r1.end.link_node(self.r3.start)
-        self.r1.end.link_node(self.r2.start)
-
-    def create_port(self):
-        self.config_port(self.r1.start, self.r2.end,
-                         self.r3.end, self.r2.end)
-
-
-class TcsrTransformer(Module):
-    def __init__(self, parent, name_base, z1, z2, z3, n):
-        super().__init__(parent, name_base)
-        self.m1 = TwoPortCircuitT(self, '1等效内阻', z1, z2, z3)
-        self.m2 = Transformer(self, '2理想变压器', n)
-
-        self.add_element(self.m1, self.m2)
-        self.create_circuit()
-        self.create_port()
-
-    def create_circuit(self):
-        self.m1.ports[2].link_node(self.m2.ports[0])
-        self.m1.ports[3].link_node(self.m2.ports[1])
-
-    def create_port(self):
-        self.config_port(self.m1.ports[2], self.m1.ports[2],
-                         self.m1.ports[2], self.m1.ports[2])
-
-
-class TcsrFL(TcsrTransformer):
-    def __init__(self, parent, name_base, z1, z2, n):
-        super().__init__(parent, name_base, z1, z2, z1, n)
-
-
-class TcsrTAD(Module):
-    def __init__(self, parent, name_base, z1, z2, z3, zc, n):
-        super().__init__(parent, name_base)
-        self.l1 = ModuleImpedance(self, '1共模电感', z3)
-        self.m1 = TcsrTransformer(self, '2理想变压器', z1, z2, z1, n)
-        self.c1 = ModuleImpedance(self, '3电容', zc)
-
-        self.add_element(self.l1, self.m1, self.c1)
-        self.create_circuit()
-        self.create_port()
-
-    def create_circuit(self):
-        self.l1.end.link_node(self.m1.ports[0])
-        self.c1.start.link_node(self.m1.ports[2])
-
-    def create_port(self):
-        self.config_port(self.l1.start, self.m1.ports[1],
-                         self.c1.end, self.m1.ports[3])
-
-
-class TcsrPower(Module):
-    def __init__(self, parent, name_base, z1):
-        super().__init__(parent, name_base)
-        self.u1 = EdgePowerU(self, '1理想电压源', 0)
-        self.r1 = ModuleImpedance(self, '2内阻', z1)
-
-        self.add_element(self.u1, self.r1)
-        self.create_circuit()
-        self.create_port()
-
-    def create_circuit(self):
-        self.u1.start.link_node(self.r1.start)
-
-    def create_port(self):
-        self.config_port(self.r1.end, self.u1.end)
-
-
-class TcsrReceiver(ModuleImpedance):
-    def __init__(self, parent, name_base, z1):
-        super().__init__(parent, name_base, z1)
-
-
-class TcsrBA(ModuleImpedance):
-    def __init__(self, parent, name_base, z1):
-        super().__init__(parent, name_base, z1)
-
-    def config_edge_para(self, freq):
-        self.r1.config_parameter(self.z[freq])
-
-    @property
-    def main_freq(self):
-        return self.parent.freq
-
-
-class TcsrCA(Module):
-    def __init__(self, parent, name_base, z1):
-        super().__init__(parent, name_base)
-        self.r1 = ModuleImpedance(self, '1电阻', z1)
-        self.wr1 = EdgeWire(self, '2导线')
-
-        self.add_element(self.r1, self.wr1)
-        self.create_circuit()
-        self.create_port()
-
-    def create_circuit(self):
-        pass
-
-    def create_port(self):
-        self.config_port(self.r1.start, self.r1.end,
-                         self.wr1.start, self.wr1.end)
 
 
 if __name__ == '__main__':
