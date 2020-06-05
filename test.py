@@ -5,6 +5,7 @@ import os
 import sys
 import pickle
 
+
 # 变量
 class Variable:
     def __init__(self):
@@ -19,6 +20,7 @@ class Node:
         self.edges = list()
         self.variable = Variable()
         self.variable_type = 'U'
+        self.zero = False
 
     @property
     def voltage(self):
@@ -198,24 +200,9 @@ class Module:
             print(edge.name)
 
     def print_nodes(self):
-        list1 = []
         for node in self.get_nodes():
             print(node.name)
             node.print_edges()
-
-        #     list1.append(node.name)
-        # list1.sort()
-        # print(list1)
-
-    # def config_port(self, *nodes):
-    #     nodes = self.get_nodes()
-    #     print(len(nodes))
-    #     for node in nodes:
-    #         if node in nodes:
-    #             self.ports.append(node)
-    #         else:
-    #             print(node.edges[0][1].parent.name_base)
-    #             raise KeyboardInterrupt("类型异常：不包含相应edge")
 
     def config_port(self, *ports):
         for port in ports:
@@ -340,9 +327,6 @@ class Transformer(Module):
         pass
 
     def create_port(self):
-        # self.config_port(self.w1.start, self.w1.end,
-        #                  self.w2.start, self.w2.end)
-
         self.config_port(Port(self.w1, True), Port(self.w1, False),
                          Port(self.w2, True), Port(self.w2, False))
 
@@ -369,8 +353,6 @@ class TwoPortCircuitPi(Module):
         self.r1.ports[1].link_node(self.r3.ports[1])
 
     def create_port(self):
-        # self.config_port(self.r1.start, self.r2.end,
-        #                  self.r3.start, self.r3.end)
         self.config_port(self.r1.ports[0], self.r2.ports[1],
                          self.r3.ports[0], self.r3.ports[1])
 
@@ -390,9 +372,6 @@ class TwoPortCircuitT(Module):
         self.r1.ports[1].link_node(self.r2.ports[0])
 
     def create_port(self):
-        # self.config_port(self.r1.start, self.r2.end,
-        #                  self.r3.end, self.r2.end)
-
         self.config_port(self.r1.ports[0], self.r2.ports[1],
                          self.r3.ports[1], self.r2.ports[1])
 
@@ -547,7 +526,6 @@ class TCSRBasic(Module):
     def create_port(self):
         self.config_port(self.modules[0].ports[0], self.modules[0].ports[1],
                          self.modules[-1].ports[-2], self.modules[-1].ports[-1])
-
 
 
 if __name__ == '__main__':
