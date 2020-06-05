@@ -89,19 +89,19 @@ class SectionInfo:
 
             elif s_type == '2000A':
                 if value == '电气':
-                    self.j_cls.append('Joint_2000A_Electric')
+                    self.j_cls.append(Joint_2000A_Electric)
                 elif value == '机械':
-                    self.j_cls.append('Joint_Mechanical')
+                    self.j_cls.append(Joint_Mechanical)
 
             elif s_type == '2000A_YPMC':
                 if value == '电气':
                     raise KeyboardInterrupt('2000A移频脉冲不支持电气绝缘节')
                 elif value == '机械':
-                    self.j_cls.append('Joint_Mechanical')
+                    self.j_cls.append(Joint_Mechanical)
 
             elif s_type == '2000A_Belarus':
                 if value == '电气':
-                    self.j_cls.append('Joint_2000A_Electric_Belarus')
+                    self.j_cls.append(Joint_2000A_Electric_Belarus)
                 elif value == '机械':
                     raise KeyboardInterrupt('2000A白俄暂不支持机械绝缘节')
 
@@ -109,13 +109,13 @@ class SectionInfo:
                 if value == '电气':
                     raise KeyboardInterrupt('2000A_BPLN不支持电气绝缘节')
                 elif value == '机械':
-                    self.j_cls.append('Joint_Mechanical')
+                    self.j_cls.append(Joint_Mechanical)
 
             elif s_type == '2000A_25Hz_Coding':
                 if value == '电气':
                     raise KeyboardInterrupt('2000A_25Hz_Coding不支持电气绝缘节')
                 elif value == '机械':
-                    self.j_cls.append('Joint_Mechanical')
+                    self.j_cls.append(Joint_Mechanical)
 
 
 class Section:
@@ -163,8 +163,8 @@ class StraightTrack:
     def config_joint(self, info):
         cls = info.j_cls
         print(cls)
-        self.l_joint = Joint(self, info, '左')
-        self.r_joint = Joint(self, info, '右')
+        self.l_joint = cls[0](self, info, '左')
+        self.r_joint = cls[1](self, info, '右')
 
     @property
     def type(self):
@@ -219,12 +219,17 @@ class Joint:
         pass
 
 
-class JointMechanical(Joint):
+class Joint_Mechanical(Joint):
     def __init__(self, parent, info, flag):
         super().__init__(parent, info, flag)
 
 
-class JointElectric2000A(Joint):
+class Joint_2000A_Electric_Belarus(Joint):
+    def __init__(self, parent, info, flag):
+        super().__init__(parent, info, flag)
+
+
+class Joint_2000A_Electric(Joint):
     def __init__(self, parent, info, flag):
         super().__init__(parent, info, flag)
         self.config_sva()
@@ -245,7 +250,7 @@ if __name__ == '__main__':
                      s_num=3,
                      freqs=[1700, 2300, 1700],
                      s_lens=[600] * 3,
-                     j_lens=[29] * 4,
+                     j_lens=[29, 0, 29, 0],
                      # m_typs=['2000A_BPLN']*3,
                      s_types=['2000A'] * 3,
                      c_nums=[5, 6, 7],
