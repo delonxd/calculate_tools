@@ -13,9 +13,19 @@ class OutsideConcept:
 
 
 class GroupInfo:
-    def __init__(self, rlt_pst, para,
-                 s_num, freqs, s_lens, j_lens, s_types,
-                 c_nums, sr_mods, send_lvs):
+    def __init__(
+            self,
+            rlt_pst,
+            para,
+            s_num: int,
+            freqs: list,
+            s_lens: list,
+            j_lens: list,
+            s_types: list,
+            c_nums: list,
+            sr_mods: list,
+            send_lvs: list,
+    ):
         self.rlt_pst = rlt_pst
         self.para = para
         self.s_num = s_num
@@ -30,11 +40,11 @@ class GroupInfo:
 
 
 class SectionGroup:
-    def __init__(self, group_info):
-        self.rlt_pst = group_info.rlt_pst
-        self.para = group_info.para
+    def __init__(self, info: GroupInfo):
+        self.rlt_pst = info.rlt_pst
+        self.para = info.para
         self.element = dict()
-        self.config_section(self.get_sec_info(group_info))
+        self.config_section(self.get_sec_info(info))
 
     @staticmethod
     def get_sec_info(g_info):
@@ -64,9 +74,19 @@ class SectionGroup:
 
 
 class SectionInfo:
-    def __init__(self, name_base, rlt_pst,
-                 freq, s_type, s_len, j_len, c_num,
-                 j_type, sr_mod, send_lv):
+    def __init__(
+            self,
+            name_base,
+            rlt_pst,
+            freq,
+            s_type,
+            s_len: float,
+            j_len: list,
+            c_num: int,
+            j_type: list,
+            sr_mod: str,
+            send_lv: int,
+    ):
         self.name_base = name_base
         self.rlt_pst = rlt_pst
         self.freq = freq
