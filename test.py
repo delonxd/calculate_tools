@@ -101,6 +101,74 @@ class Edge:
     # def link_edge(self, node):
 
 
+class Graph:
+    def __init__(self, nodes):
+        self.nodes = set()
+        for node in nodes:
+            self.nodes.add(node)
+
+        self.edges = set()
+        self.config_edges()
+
+    def config_edges(self):
+        for node in self.nodes:
+            for _, edge in node.edges:
+                self.edges.add(edge)
+
+    def print_edges(self):
+        for edge in self.edges:
+            print(edge.name)
+        print(len(self.edges))
+
+    def print_nodes(self):
+        for node in self.nodes:
+            print(node.name)
+            node.print_edges()
+        print(len(self.nodes))
+
+    def get_connected_graph(self):
+        set_list = list()
+
+        for edge in self.edges:
+            f1 = -1
+            f2 = -1
+
+            counter = 0
+            for ele in set_list:
+                if edge.start in ele:
+                    f1 = counter
+                    break
+                counter += 1
+
+            counter = 0
+            for ele in set_list:
+                if edge.end in ele:
+                    f2 = counter
+                    break
+                counter += 1
+
+            if f1 < 0 and f2 < 0:
+                ele = set()
+                ele.add(edge.start)
+                ele.add(edge.end)
+                set_list.append(ele)
+            elif f1 < 0:
+                set_list[f2].add(edge.start)
+            elif f2 < 0:
+                set_list[f1].add(edge.end)
+            elif f1 == f2:
+                pass
+            else:
+                set_list[f1].update(set_list[f2])
+                set_list.pop(f2)
+
+        graph_list = list()
+        for ele in set_list:
+            graph_list.append(Graph(ele))
+
+        return graph_list
+
+
 class EdgeResistance(Edge):
     def __init__(self, parent, name_base, z):
         super().__init__(parent, name_base)
@@ -245,6 +313,13 @@ class Module:
             edge.config_name()
         for module in self.modules:
             module.config_name()
+
+    def get_connected_graph(self):
+        edges = self.get_edges()
+        node = self.get_nodes()
+
+
+
 
 
 class ModuleImpedance(Module):
@@ -510,7 +585,8 @@ class TCSRBasic(Module):
             TcsrCA(
                 self, '6CA',
                 para['CA_z_区间'],
-            ))
+            ),
+        )
 
         self.create_circuit()
         self.create_port()
@@ -558,5 +634,7 @@ if __name__ == '__main__':
 
     md1 = TCSRBasic(None, 'tcsr_test', parameter)
     md1.config_name()
+    g1 = Graph(md1.get_nodes())
+    c1 = g1.get_connected_graph()
 
     pass
