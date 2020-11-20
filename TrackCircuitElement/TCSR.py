@@ -13,6 +13,7 @@ class TCSR:
         self.rcv_lvl = None
         self._mode = None
         self.cable_len = None
+        self.device = None
 
         # generated
         self.name = str()
@@ -24,7 +25,7 @@ class TCSR:
 
     @property
     def mode(self):
-        return
+        return self._mode
 
     @property
     def _rlt_pos(self):
@@ -34,23 +35,22 @@ class TCSR:
     def abs_pos(self):
         return
 
-    def load_params(self, **kw):
+    def load_kwargs(self, **kwargs):
 
-        if 'bas_name' in kw:
-            self._bas_name = kw['bas_name']
+        if 'bas_name' in kwargs:
+            self._bas_name = kwargs['bas_name']
 
-        if 'snd_lvl' in kw:
-            self.snd_lvl = kw['snd_lvl']
+        if 'snd_lvl' in kwargs:
+            self.snd_lvl = kwargs['snd_lvl']
 
-        if 'rcv_lvl' in kw:
-            self.rcv_lvl = kw['rcv_lvl']
+        if 'rcv_lvl' in kwargs:
+            self.rcv_lvl = kwargs['rcv_lvl']
 
-        if 'mode' in kw:
-            self._mode = kw['mode']
+        if 'mode' in kwargs:
+            self._mode = kwargs['mode']
 
-        if 'cable_len' in kw:
-            self.cable_len = kw['cable_len']
-
+        if 'cable_len' in kwargs:
+            self.cable_len = kwargs['cable_len']
 
 
 class TCSR_Mde_Flg:
