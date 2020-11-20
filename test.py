@@ -14,10 +14,13 @@ class Variable:
         self.value = None
         self.value_abs = None
 
+# 节点类型
 
 class Node:
     def __init__(self):
-        self.edges = list()
+        # self.edges = list()
+        self.edges = set()
+        self.parent = None
         self.variable = Variable()
         self.variable_type = 'U'
         self.zero = False
@@ -32,15 +35,33 @@ class Node:
 
     @property
     def name(self):
-        direction, edge = self.edges[0]
-        if direction:
-            return edge.name + '_起点'
-        else:
-            return edge.name + '_终点'
+        for edge in self.edges:
+            if self == edge.start:
+                return edge.name + '_起点'
+            else:
+                return edge.name + '_终点'
+
+    # @property
+    # def name(self):
+    #     direction, edge = self.edges[0]
+    #     if direction:
+    #         return edge.name + '_起点'
+    #     else:
+    #         return edge.name + '_终点'
+
+    # def link_edge(self, edge, outflow: bool = True):
+    #     if isinstance(edge, Edge):
+    #         self.edges.append((outflow, edge))
+    #         if outflow:
+    #             edge.start = self
+    #         else:
+    #             edge.end = self
+    #     else:
+    #         raise KeyboardInterrupt("类型异常：需要边类型")
 
     def link_edge(self, edge, outflow: bool = True):
         if isinstance(edge, Edge):
-            self.edges.append((outflow, edge))
+            self.edges.add(edge)
             if outflow:
                 edge.start = self
             else:
@@ -50,25 +71,39 @@ class Node:
 
     def link_node(self, other):
         if isinstance(other, Node):
-            for outflow, edge in other.edges:
-                self.edges.append((outflow, edge))
-                if outflow:
+            for edge in other.edges:
+                self.edges.add(edge)
+                if edge.start == other:
                     edge.start = self
                 else:
                     edge.end = self
         elif isinstance(other, Port):
             self.link_node(other.node)
         else:
-            raise KeyboardInterrupt("类型异常：需要节点或端口类型")
+            raise KeyboardInterrupt("类型异常：需要节点类型")
 
-    def print_edges(self):
-        list1 = []
-        for outflow, edge in self.edges:
-            if outflow:
-                list1.append((edge.name, '起点'))
-            else:
-                list1.append((edge.name, '终点'))
-        print(list1)
+    # def link_node(self, other):
+    #     if isinstance(other, Node):
+    #         for outflow, edge in other.edges:
+    #             self.edges.append((outflow, edge))
+    #             if outflow:
+    #                 edge.start = self
+    #             else:
+    #                 edge.end = self
+    #     elif isinstance(other, Port):
+    #         self.link_node(other.node)
+    #     else:
+    #         raise KeyboardInterrupt("类型异常：需要节点或端口类型")
+
+    #
+    # def print_edges(self):
+    #     list1 = []
+    #     for outflow, edge in self.edges:
+    #         if outflow:
+    #             list1.append((edge.name, '起点'))
+    #         else:
+    #             list1.append((edge.name, '终点'))
+    #     print(list1)
 
 
 class Edge:
@@ -79,8 +114,10 @@ class Edge:
 
         self.start = Node()
         self.end = Node()
-        self.start.edges.append((True, self))
-        self.end.edges.append((False, self))
+        # self.start.edges.append((True, self))
+        # self.end.edges.append((False, self))
+        self.start.edges.add(self)
+        self.end.edges.add(self)
         self.variable = Variable()
         self.variable_type = 'I'
 
@@ -99,6 +136,83 @@ class Edge:
         else:
             self.name = self.name_base
     # def link_edge(self, node):
+
+
+class Graph:
+    def __init__(self, nodes):
+        self.nodes = set()
+        for node in nodes:
+            self.nodes.add(node)
+
+        self.edges = set()
+        self.config_edges()
+
+    def config_edges(self):
+        for node in self.nodes:
+            self.edges.update(node.edges)
+            # for _, edge in node.edges:
+            #     self.edges.add(edge)
+
+    def print_edges(self):
+        name_list = []
+        for edge in self.edges:
+            name_list.append(edge.name)
+        name_list.sort()
+        for name in name_list:
+            print(name)
+        print(len(name_list))
+
+    def print_nodes(self):
+        name_list = []
+        for node in self.nodes:
+            name_list.append(node.name)
+        name_list.sort()
+        for name in name_list:
+            print(name)
+        print(len(name_list))
+
+
+    def get_connected_graph(self):
+        set_list = list()
+
+        for edge in self.edges:
+            f1 = -1
+            f2 = -1
+
+            counter = 0
+            for ele in set_list:
+                if edge.start in ele:
+                    f1 = counter
+                    break
+                counter += 1
+
+            counter = 0
+            for ele in set_list:
+                if edge.end in ele:
+                    f2 = counter
+                    break
+                counter += 1
+
+            if f1 < 0 and f2 < 0:
+                ele = set()
+                ele.add(edge.start)
+                ele.add(edge.end)
+                set_list.append(ele)
+            elif f1 < 0:
+                set_list[f2].add(edge.start)
+            elif f2 < 0:
+                set_list[f1].add(edge.end)
+            elif f1 == f2:
+                pass
+            else:
+                set_list[f1].update(set_list[f2])
+                set_list.pop(f2)
+
+        graph_list = list()
+        for ele in set_list:
+            graph_list.append(Graph(ele))
+
+        return graph_list
 
 
 class EdgeResistance(Edge):
@@ -188,19 +302,27 @@ class Module:
 
     def get_nodes(self):
         nodes = set()
-        for edge in self.edges:
+        # for edge in self.edges:
+        #     nodes.add(edge.start)
+        #     nodes.add(edge.end)
+        # for module in self.modules:
+        #     nodes.update(module.get_nodes())
+        for edge in self.get_edges():
             nodes.add(edge.start)
             nodes.add(edge.end)
-        for module in self.modules:
-            nodes.update(module.get_nodes())
         return nodes
 
     def print_edges(self):
+        name_list = list()
         for edge in self.get_edges():
-            print(edge.name)
+            name_list.append(edge.name)
+        name_list.sort()
+        print(name_list)
 
     def print_nodes(self):
+        name_list = list()
         for node in self.get_nodes():
+            name_list.append(node.name)
             print(node.name)
             node.print_edges()
 
@@ -210,6 +332,14 @@ class Module:
                 self.ports.append(port)
             else:
                 raise KeyboardInterrupt("类型异常：需要Port类型")
+
+    # def config_port(self, *nodes):
+    #     for node in nodes:
+    #         if isinstance(node, Node):
+    #             self.ports.append(node)
+    #         else:
+    #             raise KeyboardInterrupt("类型异常：需要Node类型")
+
 
     def add_element(self, *element):
         for ele in element:
@@ -483,7 +613,7 @@ class TCSRBasic(Module):
                 para['Z_rcv'],
             ),
             TcsrFL(
-                self, '2防雷变压器',
+                self, '2FL',
                 para['FL_z1_发送端'],
                 para['FL_z2_发送端'],
                 para['FL_n_发送端'],
@@ -510,7 +640,8 @@ class TCSRBasic(Module):
             TcsrCA(
                 self, '6CA',
                 para['CA_z_区间'],
-            ))
+            ),
+        )
 
         self.create_circuit()
         self.create_port()
@@ -558,5 +689,7 @@ if __name__ == '__main__':
 
     md1 = TCSRBasic(None, 'tcsr_test', parameter)
     md1.config_name()
+    g1 = Graph(md1.get_nodes())
+    c1 = g1.get_connected_graph()
 
     pass
