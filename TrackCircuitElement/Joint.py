@@ -26,10 +26,28 @@ class Joint:
 
     @property
     def bas_name(self):
+        from TrackCircuitElement.Section import Section
+
+        if isinstance(self.parent, Section):
+            if self == self.parent.l_joint:
+                return '左侧绝缘节'
+            elif self == self.parent.r_joint:
+                return '右侧绝缘节'
+            else:
+                return
         return
 
     @property
     def rlt_pos(self):
+        from TrackCircuitElement.Section import Section
+
+        if isinstance(self.parent, Section):
+            if self == self.parent.l_joint:
+                return 0
+            elif self == self.parent.r_joint:
+                return self.parent.length
+            else:
+                return
         return
 
     @property

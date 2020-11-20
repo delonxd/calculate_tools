@@ -2,7 +2,7 @@ from TrackCircuitElement.Section import Section
 
 class SectionGroup:
     """
-
+        区段组
     """
 
     def __init__(self, parent, **kwargs):
@@ -17,7 +17,7 @@ class SectionGroup:
 
         # generated
         self.name = str()
-        self.element = set()
+        self.units = set()
 
         # if 'm_nbr' in kwargs:
         #     self.sec_list.clear()
@@ -93,7 +93,7 @@ if __name__ == '__main__':
         m_nbr=1,
         m_freqs=[1750],
         m_lens=[650],
-        j_lens=[0, 0],
+        j_lens=[20, 50],
         m_type=['2000A'],
         c_nums=[7],
         sr_mode='左发',

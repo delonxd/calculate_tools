@@ -1,11 +1,12 @@
-class TCSR:
-    """
+from TrackCircuitElement.Unit import Unit
 
+class TcsrUnit(Unit):
+    """
+        发送接收单元
     """
 
     def __init__(self, parent):
-        # structure
-        self.parent = parent
+        super().__init__(parent)
 
         # parameters
         self._bas_name = None
@@ -17,10 +18,22 @@ class TCSR:
 
         # generated
         self.name = str()
-        self.element = set()
+        # self.sub_object = set()
 
     @property
     def bas_name(self):
+        from TrackCircuitElement.Section import Section
+        from TrackCircuitElement.Joint import Joint
+
+        if self._bas_name:
+            return self._bas_name
+        elif isinstance(self.parent, Section):
+            if self == self.parent.l_tcsr:
+                return '左侧TCSR'
+            elif self == self.parent.r_tcsr:
+                return '右侧TCSR'
+            else:
+                return
         return
 
     @property
@@ -29,6 +42,16 @@ class TCSR:
 
     @property
     def _rlt_pos(self):
+        from TrackCircuitElement.Section import Section
+        from TrackCircuitElement.Joint import Joint
+
+        if isinstance(self.parent, Section):
+            if self == self.parent.l_tcsr:
+                return 0 + self.parent.l_joint.length/2
+            elif self == self.parent.r_tcsr:
+                return self.parent.length - self.parent.r_joint.length/2
+            else:
+                return
         return
 
     @property
@@ -69,6 +92,25 @@ class Snd_Mde(TCSR_Mde_Flg):
 
 
 class Rcv_Mde(TCSR_Mde_Flg):
+    """
+
+    """
+
+
+class TCSR_Type_Flg:
+    """
+
+    """
+
+    def __init__(self, parent):
+        self.parent = parent
+
+class ZPW2000A_TCSR_QJ(TCSR_Type_Flg):
+    """
+
+    """
+
+class ZPW2000A_TCSR_QJ(TCSR_Type_Flg):
     """
 
     """

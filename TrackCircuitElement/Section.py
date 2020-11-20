@@ -1,5 +1,5 @@
 from TrackCircuitElement.Joint import Joint
-from TrackCircuitElement.TCSR import TCSR
+from TrackCircuitElement.TCSR import TcsrUnit
 # from TrackCircuitElement.OutsideElement import CapC
 from TrackCircuitElement.TCSR import Snd_Mde, Rcv_Mde
 
@@ -13,8 +13,8 @@ class Section:
         self.parent = parent
         self.l_joint = Joint(r_par=self)
         self.r_joint = Joint(l_par=self)
-        self.l_tcsr = TCSR(parent=self)
-        self.r_tcsr = TCSR(parent=self)
+        self.l_tcsr = TcsrUnit(parent=self)
+        self.r_tcsr = TcsrUnit(parent=self)
 
         # parameters
         self.bas_name = bas_name
@@ -24,8 +24,8 @@ class Section:
 
         # generated
         self.name = str()
-        self.c_list = list()
-        self.element = set()
+        # self.c_list = list()
+        self.units = set()
         # self.turnout = Turnout()
 
         self.load_kwargs(**kwargs)
