@@ -1,13 +1,11 @@
-from TrackCircuitElement.Unit import Unit
-
-
-class TcsrUnit(Unit):
+class TCSR:
     """
         发送接收单元
     """
 
     def __init__(self, parent):
-        super().__init__(parent)
+
+        self._bas_name = parent
 
         # parameters
         self._bas_name = None
@@ -105,6 +103,7 @@ class TCSR_Type_Flg:
 
     def __init__(self, parent):
         self.parent = parent
+
 
 class ZPW2000A_TCSR_QJ(TCSR_Type_Flg):
     """

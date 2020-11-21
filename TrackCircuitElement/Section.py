@@ -1,33 +1,36 @@
 from TrackCircuitElement.Joint import Joint
-from TrackCircuitElement.TcsrUnit import TcsrUnit
+from TrackCircuitElement.TCSR import TCSR
 from TrackCircuitElement.OutsideUnit import CapC
-from TrackCircuitElement.TcsrUnit import Snd_Mde, Rcv_Mde
+from TrackCircuitElement.OutsideUnit import TB
+from TrackCircuitElement.TCSR import Snd_Mde, Rcv_Mde
 import numpy as np
 
 
 class Section:
     """
-
+        区段
     """
 
     def __init__(self, parent, bas_name, **kwargs):
-        """structure"""
+        # structure
         self.parent = parent
         self.l_joint = Joint(r_par=self)
         self.r_joint = Joint(l_par=self)
-        self.l_tcsr = TcsrUnit(parent=self)
-        self.r_tcsr = TcsrUnit(parent=self)
+        self.l_tcsr = TCSR(parent=self)
+        self.r_tcsr = TCSR(parent=self)
 
-        """parameters"""
+        # parameters
         self.bas_name = bas_name
-        self.rlt_pos = None
+        self._rlt_pos = None
         self.length = None
         self.freq = None
         self.sec_type = None
+        self.tb_mode = None
+        self._c_nbr = None
         # self._c_num = None
         # self._c_value = None
 
-        """generated"""
+        # generated
         self.name = str()
         # self.c_list = list()
         self.units = set()
@@ -36,16 +39,27 @@ class Section:
         self.load_kwargs(**kwargs)
 
     @property
+    def rlt_pos(self):
+        if self.l_joint.l_par:
+            sec = self.l_joint.l_par
+            return sec.rlt_pos + sec.length
+        elif self._rlt_pos is None:
+            return 0
+        else:
+            return self._rlt_pos
+
+    @property
     def abs_pos(self):
         return
 
     @property
     def mode(self):
-        if isinstance(self.l_tcsr.mode, Snd_Mde) and isinstance(self.r_tcsr.mode, Rcv_Mde):
-            return L_Snd_Mde(self)
-        elif isinstance(self.r_tcsr.mode, Snd_Mde) and isinstance(self.l_tcsr.mode, Rcv_Mde):
-            return R_Snd_Mde(self)
+        if self.l_tcsr.mode == Snd_Mde and self.r_tcsr.mode == Rcv_Mde:
+            return L_Snd_Mde
+        elif self.r_tcsr.mode == Snd_Mde and self.l_tcsr.mode == Rcv_Mde:
+            return R_Snd_Mde
         else:
+            print("Warning: '%s'区段发送接收方向异常" % self.sec_type)
             return None
 
     def load_kwargs(self, **kwargs):
@@ -53,21 +67,21 @@ class Section:
         if 'sec_type' in kwargs:
             sec_type = kwargs['sec_type']
             if sec_type == '2000A':
-                self.sec_type = ZPW2000A_STyp(self)
+                self.sec_type = ZPW2000A_STyp
             else:
                 print("Warning: '%s'为不支持的区段类型" % sec_type)
 
         if 'tb_mode' in kwargs:
             tb_mode = kwargs['tb_mode']
-            if isinstance(self.sec_type, ZPW2000A_STyp):
+            if self.sec_type == ZPW2000A_STyp:
                 if tb_mode == '双端TB':
-                    self.sec_type.tb_mode = Two_TB_Mde(self)
+                    self.tb_mode = Two_TB_Mde
                 elif tb_mode == '左端单TB':
-                    self.sec_type.tb_mode = L_TB_Mde(self)
+                    self.tb_mode = L_TB_Mde
                 elif tb_mode == '右端单TB':
-                    self.sec_type.tb_mode = R_TB_Mde(self)
+                    self.tb_mode = R_TB_Mde
                 elif tb_mode == '无TB':
-                    self.sec_type.tb_mode = None_TB_Mde(self)
+                    self.tb_mode = None_TB_Mde
             else:
                 print('Warning: 非2000A区段无TB模式')
 
@@ -75,7 +89,7 @@ class Section:
             self.bas_name = kwargs['bas_name']
 
         if 'rlt_pos' in kwargs:
-            self.rlt_pos = kwargs['rlt_pos']
+            self._rlt_pos = kwargs['rlt_pos']
 
         if 'freq' in kwargs:
             self.freq = kwargs['freq']
@@ -101,11 +115,11 @@ class Section:
         if 'sr_mode' in kwargs:
             sr_mode = kwargs['sr_mode']
             if sr_mode == '左发':
-                self.l_tcsr._mode = Snd_Mde(self.l_tcsr)
-                self.r_tcsr._mode = Rcv_Mde(self.r_tcsr)
+                self.l_tcsr._mode = Snd_Mde
+                self.r_tcsr._mode = Rcv_Mde
             elif sr_mode == '右发':
-                self.l_tcsr._mode = Rcv_Mde(self.l_tcsr)
-                self.r_tcsr._mode = Snd_Mde(self.r_tcsr)
+                self.l_tcsr._mode = Rcv_Mde
+                self.r_tcsr._mode = Snd_Mde
             else:
                 print("Warning: '%s'为不支持的发送接收类型" % sr_mode)
 
@@ -114,10 +128,7 @@ class Section:
 
         if 'c_nbr' in kwargs:
             c_nbr = kwargs['c_nbr']
-            if isinstance(self.sec_type, ZPW2000A_STyp):
-                self.sec_type.set_c(c_nbr=c_nbr)
-            else:
-                print("Warning: '%s'区段类型无法设置电容数" % self.sec_type)
+            self._c_nbr = kwargs['c_nbr']
 
     def get_element(self):
         return
@@ -130,6 +141,15 @@ class Section:
                 c_tb_list.append((ele.rlt_pos, ele))
         c_tb_list.sort()
         return c_tb_list
+
+    def init_unit(self):
+        if self.sec_type == ZPW2000A_STyp:
+            self.sec_type.init_c(section=self, c_nbr=self._c_nbr)
+            self.sec_type.init_tb(section=self)
+            self.l_joint.init_unit()
+            self.r_joint.init_unit()
+        else:
+            pass
 
 
 class Section_Mde_Flg:
@@ -170,22 +190,66 @@ class ZPW2000A_STyp(Section_Type):
         super().__init__(parent)
         self.tb_mode = None
 
-    def set_unit(self):
-        unit = None
-        self.parent.units.clear()
-        self.parent.addunit(unit)
-
-    def set_c(self, c_nbr):
-        l_pos = self.parent.l_joint.length / 2
-        r_pos = self.parent.length - self.parent.r_joint.length / 2
+    @classmethod
+    def init_c(cls, section: Section, c_nbr: int):
+        section.units.clear()
+        l_pos = section.l_joint.length / 2
+        r_pos = section.length - section.r_joint.length / 2
         hf_c_nbr = c_nbr * 2 + 1
         hf_pos = list(np.linspace(l_pos, r_pos, hf_c_nbr))
         c_pos = [hf_pos[index * 2 + 1] for index in range(c_nbr)]
         for index, pos in enumerate(c_pos):
             name = 'C' + str(index+1)
-            c = CapC(self.parent, name)
+            c = CapC(section, name)
             c.load_kwargs(rlt_pos=pos)
-            self.parent.units.add(c)
+            section.units.add(c)
+
+    @classmethod
+    def init_tb(cls, section: Section):
+        tb_mode = section.tb_mode
+        r_pos = section.length
+        c_tb_list = section.c_tb_list
+        c_nbr = len(c_tb_list)
+
+        if tb_mode == Two_TB_Mde:
+            if c_nbr < 2:
+                cls.print_warning(tb_mode, c_nbr)
+            else:
+                section.units.discard(c_tb_list[0][1])
+                section.units.discard(c_tb_list[-1][1])
+                cls.add_tb(sec=section, name='左TB', pos=18)
+                cls.add_tb(sec=section, name='右TB', pos=r_pos-18)
+
+        elif tb_mode == L_TB_Mde:
+            if c_nbr < 1:
+                cls.print_warning(tb_mode, c_nbr)
+            else:
+                section.units.discard(c_tb_list[0][1])
+                cls.add_tb(sec=section, name='左TB', pos=18)
+
+        elif tb_mode == R_TB_Mde:
+            if c_nbr < 1:
+                cls.print_warning(tb_mode, c_nbr)
+            else:
+                section.units.discard(c_tb_list[-1][1])
+                cls.add_tb(sec=section, name='右TB', pos=r_pos-18)
+
+        elif tb_mode == None_TB_Mde:
+            pass
+
+    @classmethod
+    def add_tb(cls, sec: Section, name, pos):
+        tb = TB(sec, name)
+        tb.load_kwargs(rlt_pos=pos)
+        sec.units.add(tb)
+
+    @classmethod
+    def print_warning(cls, tb_mode, cap_nbr):
+        text = """Warning:
+            TB模式与电容数量冲突；
+            TB模式：'%s'；电容数量：'%s'；
+        """ % tb_mode, cap_nbr
+        print(text)
 
 
 class TB_Mde_Flg:

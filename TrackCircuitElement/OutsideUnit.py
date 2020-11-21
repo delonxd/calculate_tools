@@ -6,9 +6,10 @@ class SVA(Unit):
         室外空心线圈
     """
 
-    def __init__(self, parent):
+    def __init__(self, parent, bas_name):
         super().__init__(parent)
         self.device = None
+        self._bas_name = bas_name
 
 
 class CapC(Unit):
@@ -31,9 +32,10 @@ class TB(Unit):
         室外TB
     """
 
-    def __init__(self, parent):
+    def __init__(self, parent, bas_name):
         super().__init__(parent)
         self.device = None
+        self._bas_name = bas_name
 
     @property
     def freq(self):
@@ -58,3 +60,14 @@ class ROutside(Unit):
     def __init__(self, parent):
         super().__init__(parent)
         self.device = None
+
+
+class BreakPoint(Unit):
+    """
+        钢轨断点
+    """
+
+    def __init__(self, parent, bas_name):
+        super().__init__(parent)
+        self.device = None
+        self._bas_name = bas_name

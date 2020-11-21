@@ -1,5 +1,6 @@
 from TrackCircuitElement.Variable import Variable
 
+
 class Node:
     """
         节点

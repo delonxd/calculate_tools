@@ -1,6 +1,7 @@
 from TrackCircuitElement.Variable import Variable
 from TrackCircuitElement.Node import Node
 
+
 class Edge:
     """
         边

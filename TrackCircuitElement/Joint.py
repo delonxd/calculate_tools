@@ -1,18 +1,21 @@
+from TrackCircuitElement.OutsideUnit import SVA
+from TrackCircuitElement.OutsideUnit import BreakPoint
+
+
 class Joint:
     """
         绝缘节
     """
 
     def __init__(self, l_par=None, r_par=None):
-        """structure"""
+        # structure
         self.l_par = l_par
         self.r_par = r_par
 
-        """parameters"""
+        # parameters
         self.length = None
-        self._type = None
 
-        """generated"""
+        # generated
         self.name = str()
         self.units = set()
 
@@ -55,6 +58,19 @@ class Joint:
     def abs_pos(self):
         return
 
+    @property
+    def j_type(self):
+        from TrackCircuitElement.Section import ZPW2000A_STyp
+        if self.length:
+            if self.parent.sec_type == ZPW2000A_STyp:
+                return Electric_2000A_JTyp
+            else:
+                print("Warning: 区段类型：'%s'；区段长度：'%s'；无法设置绝缘节类型"
+                      % self.parent.sec_type, self.length)
+                return
+        else:
+            return Mechanical_JTyp
+
     def set_l_par(self, l_par):
         self.l_par = l_par
 
@@ -64,6 +80,9 @@ class Joint:
     def load_kwargs(self, **kwargs):
         if 'length' in kwargs:
             self.length = kwargs['length']
+
+    def init_unit(self):
+        self.j_type.init_unit(joint=self)
 
 
 class Joint_Type:
@@ -80,10 +99,12 @@ class Mechanical_JTyp(Joint_Type):
         机械绝缘节
     """
 
-    def set_unit(self):
-        unit = BreakPoint
-        self.parent.units.clear()
-        self.parent.addunit(unit)
+    @classmethod
+    def init_unit(cls, joint: Joint):
+        unit = BreakPoint(parent=joint, bas_name='断点')
+        unit.load_kwargs(rlt_pos=0)
+        joint.units.clear()
+        joint.units.add(unit)
 
 
 class Electric_2000A_JTyp(Joint_Type):
@@ -91,10 +112,12 @@ class Electric_2000A_JTyp(Joint_Type):
         2000A电气绝缘节
     """
 
-    def set_unit(self):
-        unit = None
-        self.parent.units.clear()
-        self.parent.addunit(unit)
+    @classmethod
+    def init_unit(cls, joint: Joint):
+        unit = SVA(parent=joint, bas_name='SVA')
+        unit.load_kwargs(rlt_pos=0)
+        joint.units.clear()
+        joint.units.add(unit)
 
 
 class Belarus_Electric__JTyp(Joint_Type):
@@ -102,7 +125,6 @@ class Belarus_Electric__JTyp(Joint_Type):
         白俄电气绝缘节
     """
 
-    def set_unit(self):
-        unit = None
-        self.parent.units.clear()
-        self.parent.addunit(unit)
+    @classmethod
+    def init_unit(cls, joint: Joint):
+        pass

@@ -1,4 +1,5 @@
 from TrackCircuitElement.Section import Section
+from TrackCircuitElement.Freq import Freq
 
 
 class SectionGroup:
@@ -7,24 +8,22 @@ class SectionGroup:
     """
 
     def __init__(self, parent, **kwargs):
-        """structure"""
+        # structure
         self.parent = parent
 
-        """parameters"""
+        # parameters
         self.bas_name = None
         self.rlt_pos = None
         self.sec_list = list()
         self.turnout_list = list()
 
-        """generated"""
+        # generated
         self.name = str()
         self.units = set()
 
-        # if 'm_nbr' in kwargs:
-        #     self.sec_list.clear()
-        #     self.add_sections(kwargs['m_nbr'])
-
         self.load_kwargs(**kwargs)
+        self.link_section()
+        self.init_unit()
 
     @property
     def abs_pos(self):
@@ -37,6 +36,29 @@ class SectionGroup:
 
     def add_section(self, bas_name):
         self.sec_list.append(Section(parent=self, bas_name=bas_name))
+
+    def link_section(self):
+        from TrackCircuitElement.Joint import Electric_2000A_JTyp
+        nbr = len(self.sec_list)
+        for index in range(nbr - 1):
+            sec1 = self.sec_list[index]
+            sec2 = self.sec_list[index + 1]
+            joint1 = sec1.r_joint
+            joint2 = sec2.l_joint
+            if not joint1.j_type == joint2.j_type:
+                raise KeyboardInterrupt("%s和%s绝缘节类型不符无法相连" % joint1, joint2)
+            elif not joint1.length == joint2.length:
+                raise KeyboardInterrupt("%s和%s绝缘节长度不符无法相连" % joint1, joint2)
+            elif joint1.r_par:
+                raise KeyboardInterrupt("%s右侧已与区段相连" % joint1)
+            elif joint2.l_par:
+                raise KeyboardInterrupt("%s左侧已与区段相连" % joint2)
+            elif joint1.j_type == Electric_2000A_JTyp:
+                if not sec1.freq.value == sec2.freq.copy().change_freq():
+                    raise KeyboardInterrupt("%s和%s主轨频率不符无法相连" % joint1, joint2)
+                else:
+                    joint1.r_section = sec2
+                    sec2.l_joint = joint1
 
     def load_kwargs(self, **kwargs):
         if 'm_nbr' in kwargs:
@@ -90,11 +112,14 @@ class SectionGroup:
             for index, section in enumerate(self.sec_list):
                 section.load_kwargs(c_nbr=c_nbrs[index])
 
-
         if 'section_mde' in kwargs:
             sec_params = kwargs['sec_params']
             for section in self.sec_list:
                 pass
+
+    def init_unit(self):
+        for sec in self.sec_list:
+            sec.init_unit()
 
 
 if __name__ == '__main__':
@@ -102,12 +127,12 @@ if __name__ == '__main__':
         parent=None,
         bas_name='地面',
         rlt_pos=30,
-        m_nbr=1,
-        m_freqs=[1750],
-        m_lens=[650],
-        j_lens=[20, 50],
+        m_nbr=2,
+        m_freqs=[Freq(1700), Freq(2300)],
+        m_lens=[650, 300],
+        j_lens=[20, 50, 29],
         sec_type='2000A',
-        c_nbrs=[7],
+        c_nbrs=[7, 0],
         sr_mode='左发',
         snd_lvl=1,
         cable_len=10,
