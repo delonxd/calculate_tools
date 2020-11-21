@@ -1,11 +1,15 @@
-class TCSR:
+from TrackCircuitElement.Unit import Unit
+
+
+class TcsrUnit(Unit):
     """
         发送接收单元
     """
 
     def __init__(self, parent):
-
-        self._bas_name = parent
+        super().__init__(parent)
+        # structure
+        # self.parent = parent
 
         # parameters
         self._bas_name = None
@@ -13,16 +17,10 @@ class TCSR:
         self.rcv_lvl = None
         self._mode = None
         self.cable_len = None
-        self.module = None
-
-        # generated
-        self.name = str()
-        # self.sub_object = set()
 
     @property
     def bas_name(self):
         from TrackCircuitElement.Section import Section
-        from TrackCircuitElement.Joint import Joint
 
         if self._bas_name:
             return self._bas_name
@@ -42,7 +40,6 @@ class TCSR:
     @property
     def rlt_pos(self):
         from TrackCircuitElement.Section import Section
-        from TrackCircuitElement.Joint import Joint
 
         if isinstance(self.parent, Section):
             if self == self.parent.l_tcsr:
@@ -56,6 +53,38 @@ class TCSR:
     @property
     def abs_pos(self):
         return
+
+    @property
+    def connect_joint(self):
+        if self == self.parent.l_tcsr:
+            return self.parent.l_joint
+        elif self == self.parent.r_tcsr:
+            return self.parent.r_joint
+        else:
+            return
+
+    @property
+    def md_type(self):
+        from TrackCircuitElement.Section import ZPW2000A_STyp
+        from TrackCircuitElement.Joint import Electric_2000A_JTyp, Mechanical_JTyp
+
+        sec = self.parent
+        jnt = self.connect_joint
+
+        text = "Warning: 区段类型：'%r'；绝缘节类型：'%r'；无法设置TCSR类型"\
+               % (sec.sec_type, jnt.j_type)
+
+        if sec.sec_type == ZPW2000A_STyp:
+            if jnt.j_type == Electric_2000A_JTyp:
+                return ZPW2000A_TCSR_QJ_Normal
+            elif jnt.j_type == Mechanical_JTyp:
+                return ZPW2000A_TCSR_ZN_PTSVA_Plus
+            else:
+                print(text)
+                return
+        else:
+            print(text)
+            return
 
     def load_kwargs(self, **kwargs):
 
@@ -96,21 +125,23 @@ class Rcv_Mde(TCSR_Mde_Flg):
     """
 
 
-class TCSR_Type_Flg:
-    """
-
-    """
-
-    def __init__(self, parent):
-        self.parent = parent
-
-
-class ZPW2000A_TCSR_QJ(TCSR_Type_Flg):
-    """
-
-    """
-
-class ZPW2000A_TCSR_QJ(TCSR_Type_Flg):
-    """
-
-    """
+# class TCSR_Type_Flg:
+#     """
+#
+#     """
+#
+#     def __init__(self, parent):
+#         self.parent = parent
+#
+#
+# class ZPW2000A_TCSR_QJ_Normal(TCSR_Type_Flg):
+#     """
+#
+#     """
+#
+#
+#
+# class ZPW2000A_TCSR_ZN_PTSVA_Plus(TCSR_Type_Flg):
+#     """
+#
+#     """

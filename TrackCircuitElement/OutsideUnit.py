@@ -1,4 +1,5 @@
 from TrackCircuitElement.Unit import Unit
+from TrackCircuitElement.ElectricModule import ImpedanceModule
 
 
 class SVA(Unit):
@@ -8,8 +9,11 @@ class SVA(Unit):
 
     def __init__(self, parent, bas_name):
         super().__init__(parent)
-        self.device = None
         self._bas_name = bas_name
+        self._md_type = ImpedanceModule
+
+    def init_module(self):
+        pass
 
 
 class CapC(Unit):
@@ -19,7 +23,6 @@ class CapC(Unit):
 
     def __init__(self, parent, bas_name):
         super().__init__(parent)
-        self.device = None
         self._bas_name = bas_name
 
     @property
@@ -34,7 +37,6 @@ class TB(Unit):
 
     def __init__(self, parent, bas_name):
         super().__init__(parent)
-        self.device = None
         self._bas_name = bas_name
 
     @property
@@ -47,9 +49,9 @@ class UPowerOut(Unit):
         室外电压源
     """
 
-    def __init__(self, parent):
+    def __init__(self, parent, bas_name):
         super().__init__(parent)
-        self.device = None
+        self._bas_name = bas_name
 
 
 class ROutside(Unit):
@@ -57,9 +59,9 @@ class ROutside(Unit):
         室外电阻
     """
 
-    def __init__(self, parent):
+    def __init__(self, parent, bas_name):
         super().__init__(parent)
-        self.device = None
+        self._bas_name = bas_name
 
 
 class BreakPoint(Unit):
@@ -69,5 +71,4 @@ class BreakPoint(Unit):
 
     def __init__(self, parent, bas_name):
         super().__init__(parent)
-        self.device = None
         self._bas_name = bas_name

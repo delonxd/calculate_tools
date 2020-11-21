@@ -138,5 +138,5 @@ if __name__ == '__main__':
         cable_len=10,
         # parameter=parameter,
     )
-
+    xx = sg1.sec_list[1].l_tcsr.md_type
     pass

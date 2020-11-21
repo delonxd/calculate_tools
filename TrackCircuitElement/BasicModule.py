@@ -1,6 +1,7 @@
 from TrackCircuitElement.Port import Port
 from TrackCircuitElement.Edge import Edge
 
+
 class BasicModule:
     """
         基础模块
@@ -72,7 +73,6 @@ class BasicModule:
     #             self.ports.append(node)
     #         else:
     #             raise KeyboardInterrupt("类型异常：需要Node类型")
-
 
     def add_element(self, *element):
         for ele in element:

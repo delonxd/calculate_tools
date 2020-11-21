@@ -1,8 +1,8 @@
 from TrackCircuitElement.Joint import Joint
-from TrackCircuitElement.TCSR import TCSR
+from TrackCircuitElement.TcsrUnit import TcsrUnit
 from TrackCircuitElement.OutsideUnit import CapC
 from TrackCircuitElement.OutsideUnit import TB
-from TrackCircuitElement.TCSR import Snd_Mde, Rcv_Mde
+from TrackCircuitElement.TcsrUnit import Snd_Mde, Rcv_Mde
 import numpy as np
 
 
@@ -16,8 +16,8 @@ class Section:
         self.parent = parent
         self.l_joint = Joint(r_par=self)
         self.r_joint = Joint(l_par=self)
-        self.l_tcsr = TCSR(parent=self)
-        self.r_tcsr = TCSR(parent=self)
+        self.l_tcsr = TcsrUnit(parent=self)
+        self.r_tcsr = TcsrUnit(parent=self)
 
         # parameters
         self.bas_name = bas_name
@@ -148,8 +148,14 @@ class Section:
             self.sec_type.init_tb(section=self)
             self.l_joint.init_unit()
             self.r_joint.init_unit()
+            self.init_tcsr_unit()
         else:
             pass
+
+    def init_tcsr_unit(self):
+        self.units.add(self.l_tcsr)
+        self.units.add(self.r_tcsr)
+        pass
 
 
 class Section_Mde_Flg:
