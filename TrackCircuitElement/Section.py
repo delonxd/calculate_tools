@@ -1,7 +1,9 @@
 from TrackCircuitElement.Joint import Joint
-from TrackCircuitElement.TCSR import TcsrUnit
-# from TrackCircuitElement.OutsideElement import CapC
-from TrackCircuitElement.TCSR import Snd_Mde, Rcv_Mde
+from TrackCircuitElement.TcsrUnit import TcsrUnit
+from TrackCircuitElement.OutsideUnit import CapC
+from TrackCircuitElement.TcsrUnit import Snd_Mde, Rcv_Mde
+import numpy as np
+
 
 class Section:
     """
@@ -9,20 +11,23 @@ class Section:
     """
 
     def __init__(self, parent, bas_name, **kwargs):
-        # structure
+        """structure"""
         self.parent = parent
         self.l_joint = Joint(r_par=self)
         self.r_joint = Joint(l_par=self)
         self.l_tcsr = TcsrUnit(parent=self)
         self.r_tcsr = TcsrUnit(parent=self)
 
-        # parameters
+        """parameters"""
         self.bas_name = bas_name
         self.rlt_pos = None
         self.length = None
         self.freq = None
+        self.sec_type = None
+        # self._c_num = None
+        # self._c_value = None
 
-        # generated
+        """generated"""
         self.name = str()
         # self.c_list = list()
         self.units = set()
@@ -44,6 +49,27 @@ class Section:
             return None
 
     def load_kwargs(self, **kwargs):
+
+        if 'sec_type' in kwargs:
+            sec_type = kwargs['sec_type']
+            if sec_type == '2000A':
+                self.sec_type = ZPW2000A_STyp(self)
+            else:
+                print("Warning: '%s'为不支持的区段类型" % sec_type)
+
+        if 'tb_mode' in kwargs:
+            tb_mode = kwargs['tb_mode']
+            if isinstance(self.sec_type, ZPW2000A_STyp):
+                if tb_mode == '双端TB':
+                    self.sec_type.tb_mode = Two_TB_Mde(self)
+                elif tb_mode == '左端单TB':
+                    self.sec_type.tb_mode = L_TB_Mde(self)
+                elif tb_mode == '右端单TB':
+                    self.sec_type.tb_mode = R_TB_Mde(self)
+                elif tb_mode == '无TB':
+                    self.sec_type.tb_mode = None_TB_Mde(self)
+            else:
+                print('Warning: 非2000A区段无TB模式')
 
         if 'bas_name' in kwargs:
             self.bas_name = kwargs['bas_name']
@@ -80,16 +106,31 @@ class Section:
             elif sr_mode == '右发':
                 self.l_tcsr._mode = Rcv_Mde(self.l_tcsr)
                 self.r_tcsr._mode = Snd_Mde(self.r_tcsr)
+            else:
+                print("Warning: '%s'为不支持的发送接收类型" % sr_mode)
 
-        if 'mode' in kwargs:
-            mode = kwargs['mode']
+        # if 'mode' in kwargs:
+        #     mode = kwargs['mode']
 
         if 'c_nbr' in kwargs:
-            self.c_list.clear()
-            # self.add_sections(kwargs['m_nbr'])
+            c_nbr = kwargs['c_nbr']
+            if isinstance(self.sec_type, ZPW2000A_STyp):
+                self.sec_type.set_c(c_nbr=c_nbr)
+            else:
+                print("Warning: '%s'区段类型无法设置电容数" % self.sec_type)
 
     def get_element(self):
         return
+
+    @property
+    def c_tb_list(self):
+        c_tb_list = list()
+        for ele in self.units:
+            if isinstance(ele, CapC):
+                c_tb_list.append((ele.rlt_pos, ele))
+        c_tb_list.sort()
+        return c_tb_list
+
 
 class Section_Mde_Flg:
     """
@@ -98,6 +139,7 @@ class Section_Mde_Flg:
 
     def __init__(self, parent):
         self.parent = parent
+
 
 class L_Snd_Mde(Section_Mde_Flg):
     """
@@ -108,4 +150,72 @@ class L_Snd_Mde(Section_Mde_Flg):
 class R_Snd_Mde(Section_Mde_Flg):
     """
 
+    """
+
+
+class Section_Type:
+    """
+        区段类型
+    """
+
+    def __init__(self, parent):
+        self.parent = parent
+
+
+class ZPW2000A_STyp(Section_Type):
+    """
+        2000A电气绝缘节
+    """
+    def __init__(self, parent: Section):
+        super().__init__(parent)
+        self.tb_mode = None
+
+    def set_unit(self):
+        unit = None
+        self.parent.units.clear()
+        self.parent.addunit(unit)
+
+    def set_c(self, c_nbr):
+        l_pos = self.parent.l_joint.length / 2
+        r_pos = self.parent.length - self.parent.r_joint.length / 2
+        hf_c_nbr = c_nbr * 2 + 1
+        hf_pos = list(np.linspace(l_pos, r_pos, hf_c_nbr))
+        c_pos = [hf_pos[index * 2 + 1] for index in range(c_nbr)]
+        for index, pos in enumerate(c_pos):
+            name = 'C' + str(index+1)
+            c = CapC(self.parent, name)
+            c.load_kwargs(rlt_pos=pos)
+            self.parent.units.add(c)
+
+
+class TB_Mde_Flg:
+    """
+        TB模式标志位
+    """
+
+    def __init__(self, parent: Section):
+        self.parent = parent
+
+
+class L_TB_Mde(TB_Mde_Flg):
+    """
+        左TB
+    """
+
+
+class R_TB_Mde(TB_Mde_Flg):
+    """
+        右TB
+    """
+
+
+class None_TB_Mde(TB_Mde_Flg):
+    """
+        无TB
+    """
+
+
+class Two_TB_Mde(TB_Mde_Flg):
+    """
+        双端TB
     """

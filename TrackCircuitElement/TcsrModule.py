@@ -6,6 +6,7 @@ from TrackCircuitElement.Edge import VolSrcEdge
 from TrackCircuitElement.Edge import WireEdge
 from TrackCircuitElement.Port import Port
 
+
 class TcsrXfmr(BasicModule):
     """
         TCSR变压器

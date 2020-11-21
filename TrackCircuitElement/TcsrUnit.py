@@ -1,5 +1,6 @@
 from TrackCircuitElement.Unit import Unit
 
+
 class TcsrUnit(Unit):
     """
         发送接收单元
@@ -14,7 +15,7 @@ class TcsrUnit(Unit):
         self.rcv_lvl = None
         self._mode = None
         self.cable_len = None
-        self.device = None
+        self.module = None
 
         # generated
         self.name = str()
@@ -41,7 +42,7 @@ class TcsrUnit(Unit):
         return self._mode
 
     @property
-    def _rlt_pos(self):
+    def rlt_pos(self):
         from TrackCircuitElement.Section import Section
         from TrackCircuitElement.Joint import Joint
 

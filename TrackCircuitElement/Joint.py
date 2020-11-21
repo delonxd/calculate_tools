@@ -10,10 +10,11 @@ class Joint:
 
         """parameters"""
         self.length = None
+        self._type = None
 
         """generated"""
         self.name = str()
-        self.element = set()
+        self.units = set()
 
     @property
     def parent(self):
@@ -63,3 +64,45 @@ class Joint:
     def load_kwargs(self, **kwargs):
         if 'length' in kwargs:
             self.length = kwargs['length']
+
+
+class Joint_Type:
+    """
+        绝缘节类型
+    """
+
+    def __init__(self, parent: Joint):
+        self.parent = parent
+
+
+class Mechanical_JTyp(Joint_Type):
+    """
+        机械绝缘节
+    """
+
+    def set_unit(self):
+        unit = BreakPoint
+        self.parent.units.clear()
+        self.parent.addunit(unit)
+
+
+class Electric_2000A_JTyp(Joint_Type):
+    """
+        2000A电气绝缘节
+    """
+
+    def set_unit(self):
+        unit = None
+        self.parent.units.clear()
+        self.parent.addunit(unit)
+
+
+class Belarus_Electric__JTyp(Joint_Type):
+    """
+        白俄电气绝缘节
+    """
+
+    def set_unit(self):
+        unit = None
+        self.parent.units.clear()
+        self.parent.addunit(unit)

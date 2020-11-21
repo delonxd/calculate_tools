@@ -1,21 +1,22 @@
 from TrackCircuitElement.Section import Section
 
+
 class SectionGroup:
     """
         区段组
     """
 
     def __init__(self, parent, **kwargs):
-        # structure
+        """structure"""
         self.parent = parent
 
-        # parameters
+        """parameters"""
         self.bas_name = None
         self.rlt_pos = None
         self.sec_list = list()
         self.turnout_list = list()
 
-        # generated
+        """generated"""
         self.name = str()
         self.units = set()
 
@@ -31,7 +32,7 @@ class SectionGroup:
 
     def add_sections(self, number):
         for i in range(number):
-            bas_name = '区段' + str(i+1)
+            bas_name = '区段' + str(i + 1)
             self.add_section(bas_name)
 
     def add_section(self, bas_name):
@@ -41,6 +42,11 @@ class SectionGroup:
         if 'm_nbr' in kwargs:
             self.sec_list.clear()
             self.add_sections(kwargs['m_nbr'])
+
+        if 'sec_type' in kwargs:
+            sec_type = kwargs['sec_type']
+            for index, section in enumerate(self.sec_list):
+                section.load_kwargs(sec_type=sec_type)
 
         if 'bas_name' in kwargs:
             self.bas_name = kwargs['bas_name']
@@ -61,7 +67,7 @@ class SectionGroup:
         if 'j_lens' in kwargs:
             j_lens = kwargs['j_lens']
             for index, section in enumerate(self.sec_list):
-                lens = [j_lens[index], j_lens[index+1]]
+                lens = [j_lens[index], j_lens[index + 1]]
                 section.load_kwargs(j_lens=lens)
 
         if 'snd_lvl' in kwargs:
@@ -79,6 +85,12 @@ class SectionGroup:
             for section in self.sec_list:
                 section.load_kwargs(sr_mode=sr_mode)
 
+        if 'c_nbrs' in kwargs:
+            c_nbrs = kwargs['c_nbrs']
+            for index, section in enumerate(self.sec_list):
+                section.load_kwargs(c_nbr=c_nbrs[index])
+
+
         if 'section_mde' in kwargs:
             sec_params = kwargs['sec_params']
             for section in self.sec_list:
@@ -94,12 +106,12 @@ if __name__ == '__main__':
         m_freqs=[1750],
         m_lens=[650],
         j_lens=[20, 50],
-        m_type=['2000A'],
-        c_nums=[7],
+        sec_type='2000A',
+        c_nbrs=[7],
         sr_mode='左发',
         snd_lvl=1,
         cable_len=10,
         # parameter=parameter,
-        )
+    )
 
     pass
