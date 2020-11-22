@@ -99,7 +99,6 @@ class TcsrTADXfmr(BasicModule):
         if 'zc' in kwargs:
             self.m1.load_kw(z=kwargs['zc'])
 
-
     def create_circuit(self):
         self.l1.ports[1].link_node(self.m1.ports[0])
         self.c1.ports[0].link_node(self.m1.ports[2])

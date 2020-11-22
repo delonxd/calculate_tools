@@ -1,5 +1,6 @@
 from TrackCircuitElement.Section import Section
 from TrackCircuitElement.Freq import Freq
+from TrackCircuitElement.Unit import UnitGroup
 
 
 class SectionGroup:
@@ -12,13 +13,13 @@ class SectionGroup:
         self.parent = parent
 
         # parameters
-        self.bas_name = None
-        self.rlt_pos = None
+        self._bas_name = None
+        self._rlt_pos = None
         self.sec_list = list()
         self.turnout_list = list()
 
         # generated
-        self.name = str()
+        self._name = str()
         self.units = set()
 
         self.load_kwargs(**kwargs)
@@ -26,8 +27,35 @@ class SectionGroup:
         self.init_unit()
 
     @property
+    def rlt_pos(self):
+        if self._rlt_pos is None:
+            return 0
+        else:
+            return self._rlt_pos
+
+    @property
     def abs_pos(self):
-        return
+        if self.parent is None:
+            return self.rlt_pos
+        else:
+            pos = self.parent.abs_pos + self.rlt_pos
+            return pos
+
+    @property
+    def bas_name(self):
+        if self._bas_name is None:
+            return ''
+        else:
+            return self._bas_name
+
+    @property
+    def name(self):
+        if self.parent is None:
+            return self.bas_name
+        else:
+            name = self.parent.name + '_' + self.bas_name
+            self._name = name
+            return name
 
     def add_sections(self, number):
         for i in range(number):
@@ -71,10 +99,10 @@ class SectionGroup:
                 section.load_kwargs(sec_type=sec_type)
 
         if 'bas_name' in kwargs:
-            self.bas_name = kwargs['bas_name']
+            self._bas_name = kwargs['bas_name']
 
         if 'rlt_pos' in kwargs:
-            self.rlt_pos = kwargs['rlt_pos']
+            self._rlt_pos = kwargs['rlt_pos']
 
         if 'm_freqs' in kwargs:
             m_freqs = kwargs['m_freqs']
@@ -112,6 +140,11 @@ class SectionGroup:
             for index, section in enumerate(self.sec_list):
                 section.load_kwargs(c_nbr=c_nbrs[index])
 
+        if 'tb_mode' in kwargs:
+            tb_mode = kwargs['tb_mode']
+            for index, section in enumerate(self.sec_list):
+                section.load_kwargs(tb_mode=tb_mode)
+
         if 'section_mde' in kwargs:
             sec_params = kwargs['sec_params']
             for section in self.sec_list:
@@ -120,6 +153,13 @@ class SectionGroup:
     def init_unit(self):
         for sec in self.sec_list:
             sec.init_unit()
+
+    def get_all_units(self):
+        all_units = set()
+        all_units.update(self.units)
+        for section in self.sec_list:
+            all_units.update(section.get_all_units())
+        return all_units
 
 
 if __name__ == '__main__':
@@ -136,7 +176,12 @@ if __name__ == '__main__':
         sr_mode='左发',
         snd_lvl=1,
         cable_len=10,
+        tb_mode='双端TB',
         # parameter=parameter,
     )
-    xx = sg1.sec_list[1].l_tcsr.md_type
+    xx = sg1.sec_list[1].l_tcsr
+    ug1 = UnitGroup(sg1.get_all_units())
+    yy = ug1.get_unit_pos()
+    zz = ug1.get_name_list()
+    ug1.create_module()
     pass

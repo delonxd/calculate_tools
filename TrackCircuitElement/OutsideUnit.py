@@ -1,5 +1,7 @@
 from TrackCircuitElement.Unit import Unit
-from TrackCircuitElement.ElectricModule import ImpedanceModule
+from TrackCircuitElement.OutsideModule import ZPW2000A_SVA
+from TrackCircuitElement.OutsideModule import ZPW2000A_CapC
+from TrackCircuitElement.OutsideModule import ZPW2000A_TB
 
 
 class SVA(Unit):
@@ -10,10 +12,7 @@ class SVA(Unit):
     def __init__(self, parent, bas_name):
         super().__init__(parent)
         self._bas_name = bas_name
-        self._md_type = ImpedanceModule
-
-    def init_module(self):
-        pass
+        self._md_type = ZPW2000A_SVA
 
 
 class CapC(Unit):
@@ -24,10 +23,7 @@ class CapC(Unit):
     def __init__(self, parent, bas_name):
         super().__init__(parent)
         self._bas_name = bas_name
-
-    @property
-    def bas_name(self):
-        return self._bas_name
+        self._md_type = ZPW2000A_CapC
 
 
 class TB(Unit):
@@ -38,6 +34,7 @@ class TB(Unit):
     def __init__(self, parent, bas_name):
         super().__init__(parent)
         self._bas_name = bas_name
+        self._md_type = ZPW2000A_TB
 
     @property
     def freq(self):
@@ -72,3 +69,6 @@ class BreakPoint(Unit):
     def __init__(self, parent, bas_name):
         super().__init__(parent)
         self._bas_name = bas_name
+
+    def create_module(self):
+        pass

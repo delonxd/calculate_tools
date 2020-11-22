@@ -14,9 +14,11 @@ class Joint:
 
         # parameters
         self.length = None
+        self._rlt_pos = None
+        self._bas_name = None
 
         # generated
-        self.name = str()
+        self._name = str()
         self.units = set()
 
     @property
@@ -37,9 +39,19 @@ class Joint:
                 return '左侧绝缘节'
             elif self == self.parent.r_joint:
                 return '右侧绝缘节'
-            else:
-                return
-        return
+        if self._bas_name is None:
+            return ''
+        else:
+            return self._bas_name
+
+    @property
+    def name(self):
+        if self.parent is None:
+            return self.bas_name
+        else:
+            name = self.parent.name + '_' + self.bas_name
+            self._name = name
+            return name
 
     @property
     def rlt_pos(self):
@@ -50,13 +62,18 @@ class Joint:
                 return 0
             elif self == self.parent.r_joint:
                 return self.parent.length
-            else:
-                return
-        return
+        if self._rlt_pos is None:
+            return 0
+        else:
+            return self._rlt_pos
 
     @property
     def abs_pos(self):
-        return
+        if self.parent is None:
+            return self.rlt_pos
+        else:
+            pos = self.parent.abs_pos + self.rlt_pos
+            return pos
 
     @property
     def j_type(self):
@@ -83,6 +100,11 @@ class Joint:
 
     def init_unit(self):
         self.j_type.init_unit(joint=self)
+
+    def get_all_units(self):
+        all_units = set()
+        all_units.update(self.units)
+        return all_units
 
 
 class Joint_Type:

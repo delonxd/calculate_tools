@@ -20,7 +20,7 @@ class Section:
         self.r_tcsr = TcsrUnit(parent=self)
 
         # parameters
-        self.bas_name = bas_name
+        self._bas_name = bas_name
         self._rlt_pos = None
         self.length = None
         self.freq = None
@@ -31,7 +31,7 @@ class Section:
         # self._c_value = None
 
         # generated
-        self.name = str()
+        self._name = str()
         # self.c_list = list()
         self.units = set()
         # self.turnout = Turnout()
@@ -50,7 +50,27 @@ class Section:
 
     @property
     def abs_pos(self):
-        return
+        if self.parent is None:
+            return self.rlt_pos
+        else:
+            pos = self.parent.abs_pos + self.rlt_pos
+            return pos
+
+    @property
+    def bas_name(self):
+        if self._bas_name is None:
+            return ''
+        else:
+            return self._bas_name
+
+    @property
+    def name(self):
+        if self.parent is None:
+            return self.bas_name
+        else:
+            name = self.parent.name + '_' + self.bas_name
+            self._name = name
+            return name
 
     @property
     def mode(self):
@@ -86,7 +106,7 @@ class Section:
                 print('Warning: 非2000A区段无TB模式')
 
         if 'bas_name' in kwargs:
-            self.bas_name = kwargs['bas_name']
+            self._bas_name = kwargs['bas_name']
 
         if 'rlt_pos' in kwargs:
             self._rlt_pos = kwargs['rlt_pos']
@@ -127,7 +147,6 @@ class Section:
         #     mode = kwargs['mode']
 
         if 'c_nbr' in kwargs:
-            c_nbr = kwargs['c_nbr']
             self._c_nbr = kwargs['c_nbr']
 
     def get_element(self):
@@ -137,7 +156,7 @@ class Section:
     def c_tb_list(self):
         c_tb_list = list()
         for ele in self.units:
-            if isinstance(ele, CapC):
+            if isinstance(ele, (CapC, TB)):
                 c_tb_list.append((ele.rlt_pos, ele))
         c_tb_list.sort()
         return c_tb_list
@@ -156,6 +175,13 @@ class Section:
         self.units.add(self.l_tcsr)
         self.units.add(self.r_tcsr)
         pass
+
+    def get_all_units(self):
+        all_units = set()
+        all_units.update(self.units)
+        all_units.update(self.l_joint.get_all_units())
+        all_units.update(self.r_joint.get_all_units())
+        return all_units
 
 
 class Section_Mde_Flg:
@@ -252,9 +278,9 @@ class ZPW2000A_STyp(Section_Type):
     @classmethod
     def print_warning(cls, tb_mode, cap_nbr):
         text = """Warning:
-            TB模式与电容数量冲突；
-            TB模式：'%s'；电容数量：'%s'；
-        """ % tb_mode, cap_nbr
+        TB模式与电容数量冲突；
+        TB模式：'%s'；电容数量：'%s'；
+        """ % (tb_mode, cap_nbr)
         print(text)
 
 

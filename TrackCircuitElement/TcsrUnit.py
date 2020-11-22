@@ -1,4 +1,5 @@
 from TrackCircuitElement.Unit import Unit
+from TrackCircuitElement.OutsideModule import ZPW2000A_TCSR_QJ_Normal
 
 
 class TcsrUnit(Unit):
@@ -12,7 +13,7 @@ class TcsrUnit(Unit):
         # self.parent = parent
 
         # parameters
-        self._bas_name = None
+        # self._bas_name = None
         self.snd_lvl = None
         self.rcv_lvl = None
         self._mode = None
@@ -22,16 +23,15 @@ class TcsrUnit(Unit):
     def bas_name(self):
         from TrackCircuitElement.Section import Section
 
-        if self._bas_name:
-            return self._bas_name
-        elif isinstance(self.parent, Section):
+        if isinstance(self.parent, Section):
             if self == self.parent.l_tcsr:
                 return '左侧TCSR'
             elif self == self.parent.r_tcsr:
                 return '右侧TCSR'
-            else:
-                return
-        return
+        if self._bas_name is None:
+            return ''
+        else:
+            return self._bas_name
 
     @property
     def mode(self):
@@ -46,13 +46,18 @@ class TcsrUnit(Unit):
                 return 0 + self.parent.l_joint.length/2
             elif self == self.parent.r_tcsr:
                 return self.parent.length - self.parent.r_joint.length/2
-            else:
-                return
-        return
+        if self._rlt_pos is None:
+            return 0
+        else:
+            return self._rlt_pos
 
-    @property
-    def abs_pos(self):
-        return
+    # @property
+    # def abs_pos(self):
+    #     if self.parent is None:
+    #         return self.rlt_pos
+    #     else:
+    #         pos = self.parent.rlt_pos + self.rlt_pos
+    #         return pos
 
     @property
     def connect_joint(self):
@@ -78,7 +83,8 @@ class TcsrUnit(Unit):
             if jnt.j_type == Electric_2000A_JTyp:
                 return ZPW2000A_TCSR_QJ_Normal
             elif jnt.j_type == Mechanical_JTyp:
-                return ZPW2000A_TCSR_ZN_PTSVA_Plus
+                # return ZPW2000A_TCSR_ZN_PTSVA_Plus
+                return
             else:
                 print(text)
                 return
@@ -123,25 +129,3 @@ class Rcv_Mde(TCSR_Mde_Flg):
     """
 
     """
-
-
-# class TCSR_Type_Flg:
-#     """
-#
-#     """
-#
-#     def __init__(self, parent):
-#         self.parent = parent
-#
-#
-# class ZPW2000A_TCSR_QJ_Normal(TCSR_Type_Flg):
-#     """
-#
-#     """
-#
-#
-#
-# class ZPW2000A_TCSR_ZN_PTSVA_Plus(TCSR_Type_Flg):
-#     """
-#
-#     """

@@ -1,5 +1,12 @@
 from TrackCircuitElement.ElectricModule import ImpedanceModule
 from TrackCircuitElement.BasicModule import BasicModule
+from TrackCircuitElement.TcsrModule import TcsrPower
+from TrackCircuitElement.TcsrModule import TcsrReceiver
+from TrackCircuitElement.TcsrModule import TcsrFLXfmr
+from TrackCircuitElement.ElectricModule import CableModule
+from TrackCircuitElement.TcsrModule import TcsrTADXfmr
+from TrackCircuitElement.TcsrModule import TcsrBA
+from TrackCircuitElement.TcsrModule import TcsrCA
 
 
 class ZPW2000A_SVA(ImpedanceModule):
@@ -7,7 +14,8 @@ class ZPW2000A_SVA(ImpedanceModule):
         SVA模块
     """
 
-    def __init__(self, parent, bas_name, **kwargs):
+    def __init__(self, parent, **kwargs):
+        bas_name = 'ZPW2000A空心线圈模块'
         super().__init__(parent, bas_name)
         self.parameter = None
 
@@ -23,7 +31,25 @@ class ZPW2000A_CapC(ImpedanceModule):
         补偿电容模块
     """
 
-    def __init__(self, parent, bas_name, **kwargs):
+    def __init__(self, parent, **kwargs):
+        bas_name = 'ZPW2000A空心线圈模块'
+        super().__init__(parent, bas_name)
+        self.parameter = None
+
+        self.load_kw(**kwargs)
+
+    def load_kw(self, **kwargs):
+        if 'z' in kwargs:
+            self.r1.load_kw(z=kwargs['z'])
+
+
+class ZPW2000A_TB(ImpedanceModule):
+    """
+        TB模块
+    """
+
+    def __init__(self, parent, **kwargs):
+        bas_name = 'ZPW2000A_TB模块模块'
         super().__init__(parent, bas_name)
         self.parameter = None
 
@@ -39,19 +65,19 @@ class ZPW2000A_TCSR_QJ_Normal(BasicModule):
         2000A区间模块
     """
 
-    def __init__(self, parent, bas_name, **kwargs):
+    def __init__(self, parent, **kwargs):
         from TrackCircuitElement.TcsrUnit import Snd_Mde, Rcv_Mde
-
+        bas_name = 'ZPW2000A区间模块'
         super().__init__(parent, bas_name)
         # self.parameter = None
 
-        self.power = None
-        self.receiver = None
-        self.fl_xfmr = None
-        self.cable = None
-        self.tad_xfmr = None
-        self.ba = None
-        self.ca = None
+        self.power = TcsrPower(self, '1发送器')
+        self.receiver = TcsrReceiver(self, '1接收器')
+        self.fl_xfmr = TcsrFLXfmr(self, '2FL')
+        self.cable = CableModule(self, '3电缆')
+        self.tad_xfmr = TcsrTADXfmr(self, '4TAD')
+        self.ba = TcsrBA(self, '5PT')
+        self.ca = TcsrCA(self, '6CA')
 
         if parent.mode == Snd_Mde:
             self.add_element(self.power)
