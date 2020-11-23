@@ -2,7 +2,10 @@
   <dictionary name="Delon">
     <words>
       <w>bpln</w>
+      <w>freqs</w>
+      <w>nbrs</w>
       <w>tcsr</w>
+      <w>xfmr</w>
     </words>
   </dictionary>
 </component>

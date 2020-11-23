@@ -93,7 +93,7 @@ class TcsrTADXfmr(BasicModule):
         if 'n' in kwargs:
             self.m1.load_kw(n=kwargs['n'])
 
-        if 'n' in kwargs:
+        if 'z3' in kwargs:
             self.l1.load_kw(z=kwargs['z3'])
 
         if 'zc' in kwargs:

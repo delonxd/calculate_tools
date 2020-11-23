@@ -25,6 +25,9 @@ class ZPW2000A_SVA(ImpedanceModule):
         if 'z' in kwargs:
             self.r1.load_kw(z=kwargs['z'])
 
+        if 'param' in kwargs:
+            self.r1.load_kw(z=kwargs['z'])
+
 
 class ZPW2000A_CapC(ImpedanceModule):
     """
