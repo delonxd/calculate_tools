@@ -1,8 +1,8 @@
 from TrackCircuitElement.BasicModule import BasicModule
 from TrackCircuitElement.Port import Port
 from TrackCircuitElement.Edge import *
-
 import numpy as np
+
 
 class ImpedanceModule(BasicModule):
     """

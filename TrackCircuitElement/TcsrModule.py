@@ -6,6 +6,7 @@ from TrackCircuitElement.Edge import VolSrcEdge
 from TrackCircuitElement.Edge import WireEdge
 from TrackCircuitElement.Port import Port
 
+
 class TcsrXfmr(BasicModule):
     """
         TCSR变压器
@@ -92,12 +93,11 @@ class TcsrTADXfmr(BasicModule):
         if 'n' in kwargs:
             self.m1.load_kw(n=kwargs['n'])
 
-        if 'n' in kwargs:
+        if 'z3' in kwargs:
             self.l1.load_kw(z=kwargs['z3'])
 
         if 'zc' in kwargs:
             self.m1.load_kw(z=kwargs['zc'])
-
 
     def create_circuit(self):
         self.l1.ports[1].link_node(self.m1.ports[0])
