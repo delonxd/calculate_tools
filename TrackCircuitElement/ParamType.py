@@ -1,48 +1,510 @@
-import math
+# import math
+import numpy as np
 
 
-# 单一频率阻抗
+class Impedance:
+    """
+        存放对阻抗值进行操作的方法
+    """
+
+    @classmethod
+    def get_rlc_s(cls, value, freq):
+        """
+            获取RLC串联等效
+        """
+
+        rss = ResistanceType(value=0)
+        idc = InductanceType(value=0)
+        cpc = CapacitanceType(value=np.inf)
+
+        if value is not None:
+            real = value.real
+            imag = value.imag
+            rss.set_real(real=real)
+            if imag > 0:
+                idc.set_imag(imag=imag, freq=freq)
+            elif imag < 0:
+                cpc.set_imag(imag=imag, freq=freq)
+
+        if rss.is_open() or idc.is_open() or cpc.is_open():
+            r_open = ResistanceType(value=np.inf)
+            return r_open, None, None
+
+        if rss.is_short() and idc.is_short() and cpc.is_short():
+            return rss, None, None
+
+        if rss.is_short():
+            rss = None
+        if idc.is_short():
+            idc = None
+        if cpc.is_short():
+            cpc = None
+
+        return rss, idc, cpc
+
+    @classmethod
+    def get_rlc_p(cls, value, freq):
+        """
+            获取RLC并联等效
+        """
+
+        rss = ResistanceType(value=np.inf)
+        idc = InductanceType(value=np.inf)
+        cpc = CapacitanceType(value=0)
+
+        if value is not None:
+            if value == 0:
+                rss.set_real(real=0)
+                return rss, None, None
+            y = 1 / value
+            real = y.real
+            imag = y.imag
+            if not real == 0:
+                rss.set_real(real=real)
+            if not imag == 0:
+                imag = -1/imag
+                if imag > 0:
+                    idc.set_imag(imag=imag, freq=freq)
+                elif imag < 0:
+                    cpc.set_imag(imag=imag, freq=freq)
+
+        if rss.is_short() or idc.is_short() or cpc.is_short():
+            r_short = ResistanceType(value=0)
+            return r_short, None, None
+
+        if rss.is_open() and idc.is_open() and cpc.is_open():
+            return rss, None, None
+
+        if rss.is_open():
+            rss = None
+        if idc.is_open():
+            idc = None
+        if cpc.is_open():
+            cpc = None
+
+        return rss, idc, cpc
+
+    @classmethod
+    def rlc_s_to_z(cls, freq, **kwargs):
+        value = 0
+
+        if 'rss' in kwargs:
+            rss = kwargs['rss']
+            if rss is None:
+                pass
+            elif not isinstance(rss, ResistanceType):
+                raise KeyboardInterrupt('电阻参数应为电阻类型')
+            else:
+                if rss.is_exist():
+                    value += rss.z(freq)
+
+        if 'idc' in kwargs:
+            idc = kwargs['idc']
+            if idc is None:
+                pass
+            elif not isinstance(idc, InductanceType):
+                raise KeyboardInterrupt('电感参数应为电感类型')
+            else:
+                if idc.is_exist():
+                    value += idc.z(freq)
+
+        if 'cpc' in kwargs:
+            cpc = kwargs['cpc']
+            if cpc is None:
+                pass
+            elif not isinstance(cpc, CapacitanceType):
+                raise KeyboardInterrupt('电容参数应为电容类型')
+            else:
+                if cpc.is_exist():
+                    value += cpc.z(freq)
+
+        return value
+
+    @classmethod
+    def rlc_p_to_z(cls, freq, **kwargs):
+
+        rss = ResistanceType(value=np.inf)
+        idc = InductanceType(value=np.inf)
+        cpc = CapacitanceType(value=0)
+
+        if 'rss' in kwargs:
+            ele = kwargs['rss']
+            if ele is None:
+                pass
+            elif not isinstance(ele, ResistanceType):
+                raise KeyboardInterrupt('电阻参数应为电阻类型')
+            else:
+                if ele.is_exist():
+                    rss = ele
+
+        if 'idc' in kwargs:
+            ele = kwargs['idc']
+            if ele is None:
+                pass
+            if not isinstance(ele, InductanceType):
+                raise KeyboardInterrupt('电感参数应为电感类型')
+            else:
+                if ele.is_exist():
+                    idc = ele
+
+        if 'cpc' in kwargs:
+            ele = kwargs['cpc']
+            if ele is None:
+                pass
+            if not isinstance(ele, CapacitanceType):
+                raise KeyboardInterrupt('电容参数应为电容类型')
+            else:
+                if ele.is_exist():
+                    cpc = ele
+
+        if rss.is_short() or idc.is_short() or cpc.is_short():
+            return 0
+
+        value = 1/rss.z(freq) + 1/idc.z(freq) + 1/cpc.z(freq)
+
+        if value == 0:
+            return np.inf
+        return 1 / value
+
+    @classmethod
+    def parallel_z(cls, z1, z2):
+        if z1 == 0 or z2 == 0:
+            z_new = 0
+        elif z1 == np.inf:
+            z_new = z2
+        elif z2 == np.inf:
+            z_new = z1
+        else:
+            tmp = 1/z1 + 1/z2
+            if tmp == 0:
+                z_new = np.inf
+            else:
+                z_new = 1 / tmp
+        return z_new
+
+
+class ShortCircuit:
+    pass
+
+
+class OpenCircuit:
+    pass
+
+
+class ResistanceType:
+    """
+        电阻类
+    """
+
+    def __init__(self, value=None):
+        self._value = None
+        self.value = value
+
+    @property
+    def value(self):
+        return self._value
+
+    @value.setter
+    def value(self, val):
+        if val is None:
+            self._value = OpenCircuit
+        elif not isinstance(val, (int, float)):
+            raise KeyboardInterrupt('电阻值必须是实数')
+        elif val > 0:
+            if val == np.inf:
+                self._value = OpenCircuit
+            else:
+                self._value = val
+        elif val == 0:
+            self._value = ShortCircuit
+        else:
+            raise KeyboardInterrupt('电阻值必须大于等于0')
+
+    def is_exist(self):
+        if self._value is None:
+            return False
+        else:
+            return True
+
+    def is_short(self):
+        if self.value == ShortCircuit:
+            return True
+        else:
+            return False
+
+    def is_open(self):
+        if self.value == OpenCircuit:
+            return True
+        else:
+            return False
+
+    def z(self, freq):
+        """
+            阻抗值
+        """
+
+        if self.value == ShortCircuit:
+            return 0
+        elif self.value == OpenCircuit:
+            return np.inf
+        else:
+            real = self.value
+            imag = 0
+            z = complex(real, imag)
+            return z
+
+    def set_real(self, real):
+        """
+            设置阻抗值
+        """
+
+        if real >= 0:
+            self.value = real
+        else:
+            raise KeyboardInterrupt('电阻阻抗实部必须大于等于0')
+
+    def to_imp_type(self, freq):
+        obj = ImpedanceType(freq, self.z(freq))
+        return obj
+
+
+class InductanceType:
+    """
+        电感类
+    """
+
+    def __init__(self, value=None):
+        self._value = None
+        self.value = value
+
+    @property
+    def value(self):
+        return self._value
+
+    @value.setter
+    def value(self, val):
+        if val is None:
+            self._value = OpenCircuit
+        elif not isinstance(val, (int, float)):
+            raise KeyboardInterrupt('电感值必须是实数')
+        elif val > 0:
+            if val == np.inf:
+                self._value = OpenCircuit
+            else:
+                self._value = val
+        elif val == 0:
+            self._value = ShortCircuit
+        else:
+            raise KeyboardInterrupt('电感值必须大于等于0')
+
+    def is_exist(self):
+        if self._value is None:
+            return False
+        else:
+            return True
+
+    def is_short(self):
+        if self.value == ShortCircuit:
+            return True
+        else:
+            return False
+
+    def is_open(self):
+        if self._value is None:
+            return True
+        elif self.value == OpenCircuit:
+            return True
+        else:
+            return False
+
+    def z(self, freq):
+        """
+            阻抗值
+        """
+
+        if self.value == ShortCircuit:
+            return 0
+        elif self.value == OpenCircuit:
+            return np.inf
+        else:
+            real = 0
+            imag = 2 * np.pi * freq * self.value
+            z = complex(real, imag)
+            return z
+
+    def set_imag(self, imag, freq):
+        """
+            设置阻抗值
+        """
+
+        if imag > 0:
+            omega = 2 * np.pi * freq
+            self.value = imag / omega
+        else:
+            raise KeyboardInterrupt('电感阻抗虚部必须大于等于0')
+
+    def to_imp_type(self, freq):
+        obj = ImpedanceType(freq, self.z(freq))
+        return obj
+
+
+class CapacitanceType:
+    """
+        电容类
+    """
+    def __init__(self, value=None):
+        self._value = None
+        self.value = value
+
+    @property
+    def value(self):
+        return self._value
+
+    @value.setter
+    def value(self, val):
+        if val is None:
+            self._value = OpenCircuit
+        elif not isinstance(val, (int, float)):
+            raise KeyboardInterrupt('电容值必须是实数')
+        elif val > 0:
+            if val == np.inf:
+                self._value = ShortCircuit
+            else:
+                self._value = val
+        elif val == 0:
+            self._value = OpenCircuit
+        else:
+            raise KeyboardInterrupt('电容值必须大于等于0')
+
+    def is_exist(self):
+        if self._value is None:
+            return False
+        else:
+            return True
+
+    def is_short(self):
+        if self.value == ShortCircuit:
+            return True
+        else:
+            return False
+
+    def is_open(self):
+        if self.value == OpenCircuit:
+            return True
+        else:
+            return False
+
+    def z(self, freq):
+        """
+            阻抗值
+        """
+
+        if self.value == ShortCircuit:
+            return 0
+        elif self.value == OpenCircuit:
+            return np.inf
+        else:
+            real = 0
+            imag = -1 / (2 * np.pi * freq * self.value)
+            z = complex(real, imag)
+            return z
+
+    def set_imag(self, imag, freq):
+        """
+            设置阻抗值
+        """
+
+        if imag < 0:
+            omega = 2 * np.pi * freq
+            self.value = - 1 / (imag * omega)
+        else:
+            raise KeyboardInterrupt('电容阻抗虚部必须小0')
+
+    def to_imp_type(self, freq):
+        obj = ImpedanceType(freq, self.z(freq))
+        return obj
+
+
 class ImpedanceType:
-    def __init__(self, freq, value=0):
+    """
+        单一频率阻抗类
+    """
+
+    def __init__(self, freq, value=None):
         self.freq = freq
-        self._z = None
-        self.z_complex = value
+        # self._z = None
+        # self.z_complex = value
+        self._value = value
+
+    @property
+    def value(self):
+        return self._value
+
+    @value.setter
+    def value(self, val):
+        if val is None:
+            self._value = OpenCircuit
+        else:
+            real = val.real
+            imag = val.imag
+
+            if real >= 0:
+                if real == 0 and imag == 0:
+                    self._value = ShortCircuit
+                elif real == np.inf:
+                    self._value = OpenCircuit
+                elif imag == np.inf or imag == -np.inf:
+                    self._value = OpenCircuit
+                else:
+                    self._value = val
+            else:
+                raise KeyboardInterrupt('阻抗实部必须大于等于0')
 
     @property
     def z(self):
-        return self._z
+        """
+            阻抗值
+        """
+
+        if self.value == ShortCircuit:
+            return 0
+        elif self.value == OpenCircuit:
+            return np.inf
+        else:
+            return self.value
 
     @z.setter
     def z(self, value):
-        self.z_complex = value
+        self.value = value
 
     @property
     def omega(self):
-        value = 2 * math.pi * self.freq
-        return value
+        omega = 2 * np.pi * self.freq
+        return omega
 
-    # 阻抗
     @property
     def z_complex(self):
-        return self._z
+        """
+            阻抗复数形式
+        """
+
+        return self.z
 
     @z_complex.setter
-    def z_complex(self, value):
-        # if value.real >= 0:
-        #     self._z = value
-        # else:
-        #     raise KeyboardInterrupt('复数实部不能为负数')
-        if value.real or value.real == 0:
-            self._z = value
+    def z_complex(self, value: complex):
+        self.z = value
 
-    # 阻抗极坐标形式
     @property
     def z_polar(self):
+        """
+            阻抗极坐标形式
+        """
+
         r, angle = None, None
-        if self._z:
-            z = self._z
+        if self.z is not None:
+            z = self.z
             r = abs(z)
-            angle = math.degrees(math.atan2(z.imag, z.real))
+            angle = np.degrees(np.arctan2(z.imag, z.real))
         return r, angle
 
     @z_polar.setter
@@ -50,89 +512,39 @@ class ImpedanceType:
         r, angle = value
         if r >= 0:
             # if -90 <= angle <= 90:
-            imag = r * math.sin(math.radians(angle))
-            real = r * math.cos(math.radians(angle))
-            self._z = complex(real, imag)
+            imag = r * np.sin(np.radians(angle))
+            real = r * np.cos(np.radians(angle))
+            self.value = complex(real, imag)
             # else:
             #     raise KeyboardInterrupt('辐角需要在正负90度之间')
         else:
             raise KeyboardInterrupt('模值不能为负数')
 
-    # 阻抗串联等效
     @property
     def rlc_s(self):
-        resistance, inductance, capacitance = None, None, None
-        if self._z:
-            real = self._z.real
-            imag = self._z.imag
-            resistance = None if real == 0 else real
-            if imag > 0:
-                inductance = imag / self.omega
-            elif imag < 0:
-                capacitance = - 1 / (imag * self.omega)
-        return resistance, inductance, capacitance
+        """
+            RLC串联等效形式
+        """
+
+        return Impedance.get_rlc_s(value=self.z, freq=self.freq)
 
     @rlc_s.setter
-    def rlc_s(self, value):
-        resistance, inductance, capacitance = value
-        real, imag = 0, 0
-        if resistance:
-            if resistance >= 0:
-                real = resistance
-            else:
-                raise KeyboardInterrupt('串联等效电阻不能为负数')
-        if inductance:
-            if inductance >= 0:
-                imag += inductance * self.omega
-            else:
-                raise KeyboardInterrupt('串联等效电感不能为负数')
-        if capacitance:
-            if capacitance > 0:
-                imag -= 1/(capacitance * self.omega)
-            else:
-                raise KeyboardInterrupt('串联等效电容不能为负数和零')
-        self._z = complex(real, imag)
+    def rlc_s(self, rlc):
+        rss, idc, cpc = rlc
+        Impedance.rlc_s_to_z(freq=self.freq, rss=rss, idc=idc, cpc=cpc)
 
-    # 并联等效
     @property
     def rlc_p(self):
-        resistance, inductance, capacitance = None, None, None
-        if self._z:
-            y = 1 / self._z
-            real = y.real
-            if real < 0:
-                return None
-            imag = y.imag
-            resistance = None if real == 0 else 1 / real
-            if imag < 0:
-                inductance = - 1 / (imag * self.omega)
-            elif imag > 0:
-                capacitance = imag / self.omega
-        return resistance, inductance, capacitance
+        """
+            RLC并联等效形式
+        """
+
+        return Impedance.get_rlc_p(value=self.z, freq=self.freq)
 
     @rlc_p.setter
-    def rlc_p(self, value):
-        resistance, inductance, capacitance = value
-        y = 0
-        if resistance:
-            if resistance > 0:
-                y += 1 / resistance
-            else:
-                raise KeyboardInterrupt('并联等效电阻不能为负数和零')
-        if inductance:
-            if inductance > 0:
-                y += 1/(inductance * self.omega * 1j)
-            else:
-                raise KeyboardInterrupt('并联等效电感不能为负数和零')
-        if capacitance:
-            if capacitance > 0:
-                y += capacitance * self.omega * 1j
-            else:
-                raise KeyboardInterrupt('并联等效电容不能为负数和零')
-        if y == 0:
-            self._z = 0
-        else:
-            self._z = 1 / y
+    def rlc_p(self, rlc):
+        rss, idc, cpc = rlc
+        Impedance.rlc_p_to_z(freq=self.freq, rss=rss, idc=idc, cpc=cpc)
 
     def copy(self):
         obj = ImpedanceType(self.freq, self.z)
@@ -141,13 +553,12 @@ class ImpedanceType:
     def __add__(self, other):
         if isinstance(other, ImpedanceType):
             if other.freq == self.freq:
-                z_new = self._z + other._z
+                z_new = self.value + other.value
             else:
                 raise KeyboardInterrupt('频率不同不能运算')
         else:
-            z_new = self._z + other
-        obj = ImpedanceType(self.freq)
-        obj.z = z_new
+            z_new = self.value + other
+        obj = ImpedanceType(self.freq, z_new)
         return obj
 
     def __radd__(self, other):
@@ -163,20 +574,19 @@ class ImpedanceType:
         return obj.__add__(other)
 
     def __neg__(self):
-        obj = ImpedanceType(self.freq)
-        obj.z = -self.z
+        z_new = -self.z
+        obj = ImpedanceType(self.freq, z_new)
         return obj
 
     def __mul__(self, other):
         if isinstance(other, ImpedanceType):
             if other.freq == self.freq:
-                z_new = self._z * other._z
+                z_new = self.value * other.value
             else:
                 raise KeyboardInterrupt('频率不同不能运算')
         else:
-            z_new = self._z * other
-        obj = ImpedanceType(self.freq)
-        obj.z = z_new
+            z_new = self.value * other
+        obj = ImpedanceType(self.freq, z_new)
         return obj
 
     def __rmul__(self, other):
@@ -186,38 +596,38 @@ class ImpedanceType:
     def __truediv__(self, other):
         if isinstance(other, ImpedanceType):
             if other.freq == self.freq:
-                z_new = self._z / other._z
+                z_new = self.value / other.value
             else:
                 raise KeyboardInterrupt('频率不同不能运算')
         else:
-            z_new = self._z / other
-        obj = ImpedanceType(self.freq)
-        obj.z = z_new
+            z_new = self.value / other
+        obj = ImpedanceType(self.freq, z_new)
         return obj
 
     def __rtruediv__(self, other):
-        z_new = other / self._z
-        obj = ImpedanceType(self.freq)
-        obj.z = z_new
+        z_new = other / self.value
+        obj = ImpedanceType(self.freq, z_new)
         return obj
 
     def __floordiv__(self, other):
         if isinstance(other, ImpedanceType):
             if other.freq == self.freq:
-                z_new = self._z / (self._z + other._z) * other._z
+                z_new = Impedance.parallel_z(self.z, other.z)
             else:
                 raise KeyboardInterrupt('频率不同不能运算')
         else:
             raise KeyboardInterrupt('并联错误')
-        obj = ImpedanceType(self.freq)
-        obj.z = z_new
+        obj = ImpedanceType(self.freq, z_new)
         return obj
-
 
     def get_branch(self, other):
+        """
+            获取并联支路
+        """
+
         if isinstance(other, ImpedanceType):
             if other.freq == self.freq:
-                z_new = self._z / (other._z - self._z) * other._z
+                z_new = self._value / (other._value - self._value) * other._value
             else:
                 raise KeyboardInterrupt('频率不同不能运算')
         else:
@@ -226,12 +636,22 @@ class ImpedanceType:
         obj.z = z_new
         return obj
 
+    def to_mult_freq(self, freqs: list):
+        obj_m = MultiFreqImpType()
+        for freq in freqs:
+            obj = ImpedanceType(freq, self.z)
+            obj_m.config_impedance(obj)
+        return obj_m
+
     def __repr__(self):
-        return str(self._z)
+        return str(self._value)
 
 
-# 参数描述符
 class ParaDescribe:
+    """
+        多频率阻抗类 -> 参数描述符
+    """
+
     def __init__(self, prop):
         self.prop = prop
 
@@ -249,6 +669,10 @@ class ParaDescribe:
 
 # 多频率阻抗
 class MultiFreqImpType:
+    """
+        多频率阻抗类
+    """
+
     def __init__(self):
         self.freq_dict = {}
 
@@ -314,13 +738,13 @@ class MultiFreqImpType:
             obj.config_impedance(self[freq])
         return obj
 
-    def convert_to_multi_freq(self, value):
+    def convert_to_multi_freq(self, other):
         obj_m = MultiFreqImpType()
-        if isinstance(value, MultiFreqImpType):
-            obj_m = value.select_freqs(self.keys())
+        if isinstance(other, MultiFreqImpType):
+            obj_m = other.select_freqs(self.keys())
         else:
             for freq in self.keys():
-                obj = ImpedanceType(freq, value)
+                obj = ImpedanceType(freq, other)
                 obj_m.config_impedance(obj)
         return obj_m
 
@@ -415,36 +839,58 @@ if __name__ == '__main__':
     # d = c.copy()
     # d.freq = 1700
 
-    a = MultiFreqImpType()
-    # l1 = 0.38594e-3
-
-    a.rlc_s = {
-        1700: [None, None, 25e-6],
-        2000: [None, None, 25e-6],
-        2300: [None, None, 25e-6],
-        2600: [None, None, 25e-6]}
-
-    b = MultiFreqImpType()
-    c1 = 100e-6
-    b.rlc_s = {
-        1700: [None, None, c1],
-        2000: [None, None, c1],
-        2300: [None, None, c1],
-        2600: [None, None, c1]}
-
-    # c = a + b
-
-    c = a[2300].get_branch(b[2300])
-
-    d = MultiFreqImpType()
-    l1 = 6.384447614514039e-05
-    d.rlc_s = {
-        1700: [None, l1, None],
-        2000: [None, l1, None],
-        2300: [None, l1, None],
-        2600: [None, l1, None]}
-
-    e = b // d
-
+    # a = MultiFreqImpType()
+    # # l1 = 0.38594e-3
+    #
+    # a.rlc_s = {
+    #     1700: [None, None, 25e-6],
+    #     2000: [None, None, 25e-6],
+    #     2300: [None, None, 25e-6],
+    #     2600: [None, None, 25e-6]}
+    #
+    # b = MultiFreqImpType()
+    # c1 = 100e-6
+    # b.rlc_s = {
+    #     1700: [None, None, c1],
+    #     2000: [None, None, c1],
+    #     2300: [None, None, c1],
+    #     2600: [None, None, c1]}
+    #
+    # # c = a + b
+    #
+    # c = a[2300].get_branch(b[2300])
+    #
+    # d = MultiFreqImpType()
+    # l1 = 6.384447614514039e-05
+    # d.rlc_s = {
+    #     1700: [None, l1, None],
+    #     2000: [None, l1, None],
+    #     2300: [None, l1, None],
+    #     2600: [None, l1, None]}
+    #
+    # e = b // d
 
     xxx = 10
+
+    # yy = CapacitanceType()
+    # yy.value = 0
+    # yy.set_z(0, 1700)
+    # a = Impedance.get_rlc_s(1 -1j/2/np.pi, 1)
+    # b = Impedance.get_rlc_p(1 -1j/2/np.pi, 1)
+    # c = Impedance.get_rlc_s(0, 1)
+    # d = Impedance.get_rlc_p(0, 1)
+    # e = Impedance.get_rlc_s(np.inf, 1)
+    # f = Impedance.get_rlc_p(np.inf, 1)
+    j = Impedance.get_rlc_s(1, 1)
+    h = Impedance.get_rlc_p(1, 1)
+    a = ResistanceType(12)
+    b = InductanceType(10e-3)
+    c = CapacitanceType(25*10e-6)
+
+    xx = Impedance.rlc_p_to_z(freq=1/2/np.pi, rss=a, idc=b, cpc=c)
+    yy = Impedance.rlc_s_to_z(freq=1/2/np.pi, rss=a, idc=b, cpc=c)
+    d = CapacitanceType(np.inf)
+    aa = a.to_imp_type(1700)
+    bb = b.to_imp_type(1700)
+    cc = c.to_imp_type(1700)
+    pass
