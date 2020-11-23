@@ -40,7 +40,6 @@ class Impedance:
             finally:
                 return ele
 
-
     @classmethod
     def get_rlc_s(cls, value, freq):
         """
@@ -291,6 +290,7 @@ class ResistanceType:
             阻抗值
         """
 
+        _ = 2 * np.pi * freq
         if self.value == ShortCircuit:
             return 0
         elif self.value == OpenCircuit:
@@ -704,6 +704,7 @@ class ParaDescribe:
     def __get__(self, instance, owner):
         para_dict = dict()
         for freq in instance.freq_dict.keys():
+            para_dict[freq] = None
             exec('para_dict[freq] = instance.freq_dict[freq].' + self.prop)
         return para_dict
 
