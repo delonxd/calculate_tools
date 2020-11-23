@@ -8,6 +8,40 @@ class Impedance:
     """
 
     @classmethod
+    def resistance(cls, ele):
+        if isinstance(ele, ResistanceType):
+            return ele
+        else:
+            try:
+                tmp = float(ele)
+                ele = ResistanceType(value=tmp)
+            finally:
+                return ele
+
+    @classmethod
+    def inductance(cls, ele):
+        if isinstance(ele, InductanceType):
+            return ele
+        else:
+            try:
+                tmp = float(ele)
+                ele = InductanceType(value=tmp)
+            finally:
+                return ele
+
+    @classmethod
+    def capacitance(cls, ele):
+        if isinstance(ele, CapacitanceType):
+            return ele
+        else:
+            try:
+                tmp = float(ele)
+                ele = CapacitanceType(value=tmp)
+            finally:
+                return ele
+
+
+    @classmethod
     def get_rlc_s(cls, value, freq):
         """
             获取RLC串联等效
@@ -86,37 +120,48 @@ class Impedance:
 
     @classmethod
     def rlc_s_to_z(cls, freq, **kwargs):
-        value = 0
+
+        rss = ResistanceType(value=0)
+        idc = InductanceType(value=0)
+        cpc = CapacitanceType(value=np.inf)
 
         if 'rss' in kwargs:
-            rss = kwargs['rss']
-            if rss is None:
+            ele = kwargs['rss']
+            ele = Impedance.resistance(ele)
+            if ele is None:
                 pass
-            elif not isinstance(rss, ResistanceType):
+            elif not isinstance(ele, ResistanceType):
                 raise KeyboardInterrupt('电阻参数应为电阻类型')
             else:
-                if rss.is_exist():
-                    value += rss.z(freq)
+                if ele.is_exist():
+                    rss = ele
 
         if 'idc' in kwargs:
-            idc = kwargs['idc']
-            if idc is None:
+            ele = kwargs['idc']
+            ele = Impedance.inductance(ele)
+            if ele is None:
                 pass
-            elif not isinstance(idc, InductanceType):
+            if not isinstance(ele, InductanceType):
                 raise KeyboardInterrupt('电感参数应为电感类型')
             else:
-                if idc.is_exist():
-                    value += idc.z(freq)
+                if ele.is_exist():
+                    idc = ele
 
         if 'cpc' in kwargs:
-            cpc = kwargs['cpc']
-            if cpc is None:
+            ele = kwargs['cpc']
+            ele = Impedance.capacitance(ele)
+            if ele is None:
                 pass
-            elif not isinstance(cpc, CapacitanceType):
+            if not isinstance(ele, CapacitanceType):
                 raise KeyboardInterrupt('电容参数应为电容类型')
             else:
-                if cpc.is_exist():
-                    value += cpc.z(freq)
+                if ele.is_exist():
+                    cpc = ele
+
+        if rss.is_open() or idc.is_open() or cpc.is_open():
+            return np.inf
+
+        value = rss.z(freq) + idc.z(freq) + cpc.z(freq)
 
         return value
 
@@ -129,6 +174,7 @@ class Impedance:
 
         if 'rss' in kwargs:
             ele = kwargs['rss']
+            ele = Impedance.resistance(ele)
             if ele is None:
                 pass
             elif not isinstance(ele, ResistanceType):
@@ -139,6 +185,7 @@ class Impedance:
 
         if 'idc' in kwargs:
             ele = kwargs['idc']
+            ele = Impedance.inductance(ele)
             if ele is None:
                 pass
             if not isinstance(ele, InductanceType):
@@ -149,6 +196,7 @@ class Impedance:
 
         if 'cpc' in kwargs:
             ele = kwargs['cpc']
+            ele = Impedance.capacitance(ele)
             if ele is None:
                 pass
             if not isinstance(ele, CapacitanceType):
@@ -310,9 +358,7 @@ class InductanceType:
             return False
 
     def is_open(self):
-        if self._value is None:
-            return True
-        elif self.value == OpenCircuit:
+        if self.value == OpenCircuit:
             return True
         else:
             return False
@@ -644,7 +690,7 @@ class ImpedanceType:
         return obj_m
 
     def __repr__(self):
-        return str(self._value)
+        return str(self.value)
 
 
 class ParaDescribe:
@@ -887,8 +933,8 @@ if __name__ == '__main__':
     b = InductanceType(10e-3)
     c = CapacitanceType(25*10e-6)
 
-    xx = Impedance.rlc_p_to_z(freq=1/2/np.pi, rss=a, idc=b, cpc=c)
-    yy = Impedance.rlc_s_to_z(freq=1/2/np.pi, rss=a, idc=b, cpc=c)
+    xx = Impedance.rlc_p_to_z(freq=1/2/np.pi, idc=1, cpc=1)
+    yy = Impedance.rlc_s_to_z(freq=1/2/np.pi, rss=-np.inf, idc=1, cpc=1)
     d = CapacitanceType(np.inf)
     aa = a.to_imp_type(1700)
     bb = b.to_imp_type(1700)
