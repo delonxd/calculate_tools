@@ -1,3 +1,5 @@
+from TrackCircuitElement.ParamType import ImpedanceType
+
 
 class Parameter:
     """
@@ -6,7 +8,8 @@ class Parameter:
 
     from TrackCircuitElement.TcsrModule import TcsrTADXfmr
 
-    def __init__(self):
+    def __init__(self, name):
+        self.name = name
         pass
 
 
@@ -15,8 +18,8 @@ class TADXfmrParam(Parameter):
         TAD变压器参数类
     """
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, name):
+        super().__init__(name)
         self.z1 = None
         self.z2 = None
         self.n = None
@@ -24,7 +27,6 @@ class TADXfmrParam(Parameter):
         self.zc = None
 
     @property
-    def parent(self):
+    def param_class(self):
         from TrackCircuitElement.TcsrModule import TcsrTADXfmr
-
         return TcsrTADXfmr

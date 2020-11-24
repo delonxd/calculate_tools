@@ -140,7 +140,7 @@ class Impedance:
             ele = Impedance.inductance(ele)
             if ele is None:
                 pass
-            if not isinstance(ele, InductanceType):
+            elif not isinstance(ele, InductanceType):
                 raise KeyboardInterrupt('电感参数应为电感类型')
             else:
                 if ele.is_exist():
@@ -151,7 +151,7 @@ class Impedance:
             ele = Impedance.capacitance(ele)
             if ele is None:
                 pass
-            if not isinstance(ele, CapacitanceType):
+            elif not isinstance(ele, CapacitanceType):
                 raise KeyboardInterrupt('电容参数应为电容类型')
             else:
                 if ele.is_exist():
@@ -187,7 +187,7 @@ class Impedance:
             ele = Impedance.inductance(ele)
             if ele is None:
                 pass
-            if not isinstance(ele, InductanceType):
+            elif not isinstance(ele, InductanceType):
                 raise KeyboardInterrupt('电感参数应为电感类型')
             else:
                 if ele.is_exist():
@@ -198,7 +198,7 @@ class Impedance:
             ele = Impedance.capacitance(ele)
             if ele is None:
                 pass
-            if not isinstance(ele, CapacitanceType):
+            elif not isinstance(ele, CapacitanceType):
                 raise KeyboardInterrupt('电容参数应为电容类型')
             else:
                 if ele.is_exist():
@@ -315,6 +315,9 @@ class ResistanceType:
         obj = ImpedanceType(freq, self.z(freq))
         return obj
 
+    def __repr__(self):
+        return str(self.value)
+
 
 class InductanceType:
     """
@@ -393,6 +396,9 @@ class InductanceType:
         obj = ImpedanceType(freq, self.z(freq))
         return obj
 
+    def __repr__(self):
+        return str(self.value)
+
 
 class CapacitanceType:
     """
@@ -470,6 +476,9 @@ class CapacitanceType:
         obj = ImpedanceType(freq, self.z(freq))
         return obj
 
+    def __repr__(self):
+        return str(self.value)
+
 
 class ImpedanceType:
     """
@@ -478,9 +487,8 @@ class ImpedanceType:
 
     def __init__(self, freq, value=None):
         self.freq = freq
-        # self._z = None
-        # self.z_complex = value
-        self._value = value
+        self._value = None
+        self.value = value
 
     @property
     def value(self):
@@ -577,7 +585,7 @@ class ImpedanceType:
     @rlc_s.setter
     def rlc_s(self, rlc):
         rss, idc, cpc = rlc
-        Impedance.rlc_s_to_z(freq=self.freq, rss=rss, idc=idc, cpc=cpc)
+        self.value = Impedance.rlc_s_to_z(freq=self.freq, rss=rss, idc=idc, cpc=cpc)
 
     @property
     def rlc_p(self):
@@ -590,7 +598,7 @@ class ImpedanceType:
     @rlc_p.setter
     def rlc_p(self, rlc):
         rss, idc, cpc = rlc
-        Impedance.rlc_p_to_z(freq=self.freq, rss=rss, idc=idc, cpc=cpc)
+        self.value = Impedance.rlc_p_to_z(freq=self.freq, rss=rss, idc=idc, cpc=cpc)
 
     def copy(self):
         obj = ImpedanceType(self.freq, self.z)
@@ -712,6 +720,7 @@ class ParaDescribe:
         for freq in value.keys():
             instance.freq_dict[freq] = ImpedanceType(freq)
             exec('instance.freq_dict[freq].' + self.prop + ' = value[freq]')
+            pass
 
 
 # 多频率阻抗
@@ -723,7 +732,7 @@ class MultiFreqImpType:
     def __init__(self):
         self.freq_dict = {}
 
-    z = ParaDescribe('z_complex')
+    # z = ParaDescribe('z_complex')
     z_complex = ParaDescribe('z_complex')
     z_polar = ParaDescribe('z_polar')
     rlc_s = ParaDescribe('rlc_s')
@@ -740,6 +749,9 @@ class MultiFreqImpType:
     def values(self):
         return self.freq_dict.values()
 
+    def z(self, freq):
+        return self[freq].z_complex
+
     def keys(self):
         return self.freq_dict.keys()
 
@@ -750,7 +762,7 @@ class MultiFreqImpType:
         return self.select_freqs(self.keys())
 
     def __repr__(self):
-        return str(self.z)
+        return str(self.z_complex)
 
     def __len__(self):
         return len(self.freq_dict)
@@ -917,7 +929,7 @@ if __name__ == '__main__':
     #
     # e = b // d
 
-    xxx = 10
+    # xxx = 10
 
     # yy = CapacitanceType()
     # yy.value = 0
@@ -926,8 +938,8 @@ if __name__ == '__main__':
     # b = Impedance.get_rlc_p(1 -1j/2/np.pi, 1)
     # c = Impedance.get_rlc_s(0, 1)
     # d = Impedance.get_rlc_p(0, 1)
-    # e = Impedance.get_rlc_s(np.inf, 1)
-    # f = Impedance.get_rlc_p(np.inf, 1)
+    e = Impedance.get_rlc_s(np.inf, 1)
+    f = Impedance.get_rlc_p(np.inf, 1)
     j = Impedance.get_rlc_s(1, 1)
     h = Impedance.get_rlc_p(1, 1)
     a = ResistanceType(12)
@@ -935,9 +947,12 @@ if __name__ == '__main__':
     c = CapacitanceType(25*10e-6)
 
     xx = Impedance.rlc_p_to_z(freq=1/2/np.pi, idc=1, cpc=1)
-    yy = Impedance.rlc_s_to_z(freq=1/2/np.pi, rss=-np.inf, idc=1, cpc=1)
+    yy = Impedance.rlc_s_to_z(freq=1/2/np.pi, rss=1, idc=1, cpc=1)
     d = CapacitanceType(np.inf)
     aa = a.to_imp_type(1700)
     bb = b.to_imp_type(1700)
     cc = c.to_imp_type(1700)
+
+    xxx = ImpedanceType(1700)
+
     pass
