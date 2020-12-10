@@ -12,6 +12,41 @@ class OutsideConcept:
         self.rlt_pst = rlt_pst
 
 
+class Test1:
+    def __init__(self):
+        self.a = 100
+
+    def __float__(self):
+        return 608.8
+
+    def __add__(self, other):
+        return float(self) + other
+
+    def __radd__(self, other):
+        return other + float(self)
+
+    def __sub__(self, other):
+        return float(self) + other
+
+    def __rsub__(self, other):
+        return other - float(self)
+
+    def __neg__(self):
+        return - float(self)
+
+    def __mul__(self, other):
+        return float(self) * other
+
+    def __rmul__(self, other):
+        return other * float(self)
+
+    def __truediv__(self, other):
+        return float(self) / other
+
+    def __rtruediv__(self, other):
+        return other / float(self)
+
+
 class GroupInfo:
     def __init__(
             self,
@@ -77,7 +112,7 @@ class SectionInfo:
     def __init__(
             self,
             name_base,
-            rlt_pst,
+            rlt_pst: float,
             freq,
             s_type,
             s_len: float,
@@ -139,7 +174,7 @@ class SectionInfo:
 
 
 class Section:
-    def __init__(self, parent, info):
+    def __init__(self, parent, info: SectionInfo):
         self.parent = parent
         self.name_base = info.name_base
         self.rlt_pst = info.rlt_pst
@@ -266,10 +301,11 @@ if __name__ == '__main__':
     with open(path, 'rb') as pk_f:
         parameter = pickle.load(pk_f)
 
+    c = Test1()
     inf1 = GroupInfo(rlt_pst=0, para=parameter,
                      s_num=3,
                      freqs=[1700, 2300, 1700],
-                     s_lens=[600] * 3,
+                     s_lens=[c] * 3,
                      j_lens=[29, 0, 29, 0],
                      # m_typs=['2000A_BPLN']*3,
                      s_types=['2000A'] * 3,
